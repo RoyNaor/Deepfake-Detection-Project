@@ -1,0 +1,22 @@
+# --- Python & Environment ---
+venv/
+__pycache__/
+*.py[cod]
+.vscode/
+
+# --- Dataset & Features (כבדים מדי לגיט!) ---
+data/raw_audio/
+data/feats_wavlm/
+data/feats_whisper/
+data/*.zip
+data/*.tar.gz
+
+# --- Trained Models (כבדים) ---
+checkpoints/
+results/*.pth
+*.pt
+*.pth
+
+# --- System Files ---
+.DS_Store
+Thumbs.db

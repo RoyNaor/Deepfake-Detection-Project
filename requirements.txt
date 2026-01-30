@@ -1,0 +1,17 @@
+# AI & Audio Models
+transformers
+huggingface-hub
+accelerate
+soundfile
+librosa
+
+# Data Handling
+numpy
+pandas
+scikit-learn
+tqdm
+
+# Visualization
+matplotlib
+seaborn
+jupyter
