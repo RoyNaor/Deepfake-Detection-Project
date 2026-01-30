@@ -24,8 +24,6 @@ graph LR
     E --> F
     F --> G[Nes2Net Classifier]
     G --> H((Real / Fake))
-```markdown
-
 ```
 
 ### Components:
