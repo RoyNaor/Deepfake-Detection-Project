@@ -1,4 +1,3 @@
-# Deepfake Detection System: Multi-Modal Fusion Approach
 
 ## 1. Experiment Overview
 This project evaluates the effectiveness of fusing **Semantic Features** (Whisper) with **Acoustic Features** (WavLM) for detecting deepfake audio. The core hypothesis is that combining these two modalities improves robustness against various spoofing attacks compared to using a single modality.
