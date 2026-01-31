@@ -1,4 +1,4 @@
-# 🎵 Audio Deepfake Detection: Semantic & Acoustic Fusion
+# Audio Deepfake Detection: Semantic & Acoustic Fusion
 
 ### 🚀 Final Project: Multi-Modal Deepfake Detection
 
