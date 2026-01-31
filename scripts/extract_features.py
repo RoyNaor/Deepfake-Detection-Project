@@ -1,40 +1,35 @@
 import torch
 import torchaudio
-from transformers import WavLMModel, WhisperModel
+from transformers import WavLMModel, WhisperModel, AutoFeatureExtractor
 import os
 from tqdm import tqdm
+import numpy as np
 
 # --- הגדרות נתיבים ---
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # תיקיית הפרויקט הראשית
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
 RAW_AUDIO_DIR = os.path.join(BASE_DIR, "data", "raw_audio")
 FEATS_WAVLM_DIR = os.path.join(BASE_DIR, "data", "feats_wavlm")
 FEATS_WHISPER_DIR = os.path.join(BASE_DIR, "data", "feats_whisper")
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-def extract_for_folder(model_wavlm, model_whisper, subfolder):
-    """
-    פונקציה שמקבלת שם של תת-תיקייה (train או test) ומחלצת את כל הקבצים שבתוכה
-    """
+def extract_for_folder(model_wavlm, model_whisper, processor, subfolder):
     input_dir = os.path.join(RAW_AUDIO_DIR, subfolder)
-    
-    # יצירת תיקיות יעד תואמות
     out_wavlm = os.path.join(FEATS_WAVLM_DIR, subfolder)
     out_whisper = os.path.join(FEATS_WHISPER_DIR, subfolder)
     
     os.makedirs(out_wavlm, exist_ok=True)
     os.makedirs(out_whisper, exist_ok=True)
     
-    # רשימת כל קבצי האודיו
     files = [f for f in os.listdir(input_dir) if f.endswith('.flac')]
     
-    print(f"\n📂 מעבד את תיקיית: {subfolder} ({len(files)} קבצים)...")
+    print(f"\n📂 Processing folder: {subfolder} ({len(files)} files)...")
     
     for fname in tqdm(files):
         file_path = os.path.join(input_dir, fname)
         save_name = fname.replace('.flac', '.pt')
         
-        # בדיקה אם כבר עשינו את הקובץ הזה (כדי לחסוך זמן אם עוצרים באמצע)
+        # דילוג אם הקובץ קיים
         if os.path.exists(os.path.join(out_wavlm, save_name)) and \
            os.path.exists(os.path.join(out_whisper, save_name)):
             continue
@@ -43,54 +38,72 @@ def extract_for_folder(model_wavlm, model_whisper, subfolder):
             # 1. טעינת אודיו
             waveform, sr = torchaudio.load(file_path)
             
-            # Resampling חובה ל-16kHz (שני המודלים דורשים את זה)
+            # 2. Resample ל-16kHz
             if sr != 16000:
                 waveform = torchaudio.functional.resample(waveform, sr, 16000)
             
-            # הוספת מימד Batch אם חסר (צריך להיות [1, Time])
-            if waveform.dim() == 1:
-                waveform = waveform.unsqueeze(0)
+            # בדיקה שהאודיו לא ריק
+            if waveform.shape[1] < 1600: # פחות מ-0.1 שניות
+                continue
+
+            # --- הכנה ל-WavLM (אודיו גולמי חתוך) ---
+            # חותכים ידנית כדי לחסוך זיכרון ב-WavLM (עד 4 שניות מספיק ל-POC)
+            max_raw_len = 16000 * 4 
+            wavlm_input = waveform
+            if wavlm_input.shape[1] > max_raw_len:
+                wavlm_input = wavlm_input[:, :max_raw_len]
             
-            waveform = waveform.to(DEVICE)
+            # הוספת מימד Batch
+            if wavlm_input.dim() == 1:
+                wavlm_input = wavlm_input.unsqueeze(0)
+            
+            # --- הכנה ל-Whisper (ספקטרוגרמה) ---
+            # המעבד (Processor) מטפל לבד בחיתוך/ריפוד ל-30 שניות
+            whisper_inputs = processor(
+                waveform.squeeze().numpy(), 
+                sampling_rate=16000, 
+                return_tensors="pt"
+            )
+            whisper_input_features = whisper_inputs.input_features
+
+            # העברה ל-GPU
+            wavlm_input = wavlm_input.to(DEVICE)
+            whisper_input_features = whisper_input_features.to(DEVICE)
             
             with torch.no_grad():
-                # --- A. חילוץ WavLM ---
-                # WavLM מצפה ל-Raw Audio
-                wavlm_out = model_wavlm(waveform).last_hidden_state # [1, Time, 768]
+                # A. חילוץ WavLM
+                wavlm_out = model_wavlm(wavlm_input).last_hidden_state 
                 torch.save(wavlm_out.cpu(), os.path.join(out_wavlm, save_name))
                 
-                # --- B. חילוץ Whisper ---
-                # Whisper מצפה גם ל-Raw Audio (בשימוש ב-Feature Extractor הפנימי שלו)
-                # נשתמש ישירות ב-Encoder
-                whisper_out = model_whisper.encoder(waveform).last_hidden_state # [1, Time, 768]
+                # B. חילוץ Whisper
+                whisper_out = model_whisper.encoder(whisper_input_features).last_hidden_state 
                 torch.save(whisper_out.cpu(), os.path.join(out_whisper, save_name))
                 
         except Exception as e:
-            print(f"❌ שגיאה בקובץ {fname}: {e}")
+            print(f"❌ Error processing file {fname}: {e}")
 
 def main():
-    print(f"🚀 מתחיל חילוץ מאפיינים על {DEVICE}")
+    print(f"🚀 Starting feature extraction on {DEVICE}")
     
-    # 1. טעינת המודלים הכבדים לזיכרון (פעם אחת בלבד)
     print("Loading WavLM...")
     wavlm = WavLMModel.from_pretrained("microsoft/wavlm-base-plus").to(DEVICE)
-    wavlm.eval() # מצב קריאה בלבד
+    wavlm.eval()
     
-    print("Loading Whisper...")
+    print("Loading Whisper & Processor...")
     whisper = WhisperModel.from_pretrained("openai/whisper-small").to(DEVICE)
     whisper.eval()
+    # הוספנו את המעבד שיודע להמיר אודיו לספקטרוגרמה
+    processor = AutoFeatureExtractor.from_pretrained("openai/whisper-small")
     
-    # 2. הרצה על תיקיית האימון
     if os.path.exists(os.path.join(RAW_AUDIO_DIR, "train")):
-        extract_for_folder(wavlm, whisper, "train")
+        extract_for_folder(wavlm, whisper, processor, "train")
     else:
-        print("⚠️ לא מצאתי תיקיית train! האם הרצת את organize_data.py?")
+        print("⚠️ Train folder not found!")
 
-    # 3. הרצה על תיקיית הטסט
     if os.path.exists(os.path.join(RAW_AUDIO_DIR, "test")):
-        extract_for_folder(wavlm, whisper, "test")
+        extract_for_folder(wavlm, whisper, processor, "test")
         
-    print("\n✅✅✅ סיימנו! כל המאפיינים חולצו ומוכנים לאימון.")
+    print("\n✅✅✅ Finished! All features extracted.")
 
 if __name__ == "__main__":
     main()

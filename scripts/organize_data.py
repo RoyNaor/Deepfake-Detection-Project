@@ -6,7 +6,7 @@ import random
 
 # 1. איפה נמצאת התיקייה שחילצת מה-ZIP? (נתיב מלא)
 # שימי לב: זה הנתיב לתיקייה הראשית שנוצרה אחרי החילוץ
-SOURCE_ROOT = r"C:\Users\YourName\Downloads\ASVspoof2019_LA" 
+SOURCE_ROOT = r"C:\Users\amitn\Downloads\LA" 
 
 # 2. איפה הפרויקט שלך נמצא?
 PROJECT_ROOT = r"./" # זה אומר "בתיקייה הנוכחית"
