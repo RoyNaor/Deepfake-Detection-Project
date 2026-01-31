@@ -1,11 +1,20 @@
+"""Nes2Net backend architecture with Res2Net-style blocks and pooling."""
+
 import torch
 import torch.nn as nn
 import math
 
-# --- מחלקות עזר (בדיוק כמו במקור) ---
+# --- Helper modules ---
 
 class SEModule(nn.Module):
+    """Squeeze-and-Excitation block for channel-wise recalibration."""
     def __init__(self, channels, SE_ratio=8):
+        """Initialize the SE block.
+
+        Args:
+            channels: Number of input/output channels.
+            SE_ratio: Channel reduction ratio for the bottleneck.
+        """
         super(SEModule, self).__init__()
         self.se = nn.Sequential(
             nn.AdaptiveAvgPool1d(1),
@@ -16,11 +25,23 @@ class SEModule(nn.Module):
         )
 
     def forward(self, input):
+        """Apply channel-wise attention."""
         x = self.se(input)
         return input * x
 
 class Bottle2neck(nn.Module):
+    """Res2Net-inspired bottleneck block with SE recalibration."""
     def __init__(self, inplanes, planes, kernel_size=None, dilation=None, scale=8, SE_ratio=8):
+        """Initialize the bottleneck block.
+
+        Args:
+            inplanes: Input channel count.
+            planes: Output channel count.
+            kernel_size: Kernel size for internal convolutions.
+            dilation: Dilation for internal convolutions.
+            scale: Number of channel splits.
+            SE_ratio: Squeeze-and-Excitation reduction ratio.
+        """
         super(Bottle2neck, self).__init__()
         width = int(math.floor(planes / scale))
         self.conv1 = nn.Conv1d(inplanes, width * scale, kernel_size=1)
@@ -41,6 +62,7 @@ class Bottle2neck(nn.Module):
         self.se = SEModule(planes, SE_ratio)
 
     def forward(self, x):
+        """Forward pass through the bottleneck."""
         residual = x
         out = self.conv1(x)
         out = self.relu(out)
@@ -67,7 +89,15 @@ class Bottle2neck(nn.Module):
         return out
 
 class ASTP(nn.Module):
+    """Attentive statistics pooling layer."""
     def __init__(self, in_dim, bottleneck_dim=128, global_context_att=False):
+        """Initialize the pooling layer.
+
+        Args:
+            in_dim: Number of input channels.
+            bottleneck_dim: Bottleneck channel size for attention layers.
+            global_context_att: Whether to append global mean/std to inputs.
+        """
         super(ASTP, self).__init__()
         self.global_context_att = global_context_att
         if global_context_att:
@@ -77,6 +107,7 @@ class ASTP(nn.Module):
         self.linear2 = nn.Conv1d(bottleneck_dim, in_dim, kernel_size=1)
 
     def forward(self, x):
+        """Compute attentive mean and standard deviation statistics."""
         if self.global_context_att:
             context_mean = torch.mean(x, dim=-1, keepdim=True).expand_as(x)
             context_std = torch.sqrt(torch.var(x, dim=-1, keepdim=True) + 1e-10).expand_as(x)
@@ -90,19 +121,28 @@ class ASTP(nn.Module):
         std = torch.sqrt(var.clamp(min=1e-10))
         return torch.cat([mean, std], dim=1)
 
-# --- המודל הראשי (זה ה-Backend שלנו) ---
-# שיניתי את השם ל-Nes2Net וסידרתי את ה-input_channels
+# --- Main backend model ---
 
 class Nes2Net(nn.Module):
+    """Nes2Net backend for binary real/fake classification."""
     def __init__(self, input_channels, Nes_ratio=[8, 8], dilation=2, pool_func='mean', SE_ratio=[8]):
+        """Initialize the network.
+
+        Args:
+            input_channels: Number of input channels (e.g., 768 or 1536).
+            Nes_ratio: Split ratios for internal Res2Net blocks.
+            dilation: Dilation factor for convolution layers.
+            pool_func: Pooling function ("mean" or "ASTP").
+            SE_ratio: Squeeze-and-Excitation reduction ratios.
+        """
         super(Nes2Net, self).__init__()
-        
-        # חישובים דינמיים לפי גודל הקלט (חשוב ל-Fusion!)
+
+        # Dynamic calculations based on input size (important for fusion).
         self.Nes_ratio = Nes_ratio[0]
-        
-        # וידוא שהחלוקה עובדת (למשל 1536 / 8 = 192, זה עובד)
+
+        # Ensure the channel split is valid for the chosen ratio.
         assert input_channels % Nes_ratio[0] == 0, f"Input channels {input_channels} must be divisible by Nes_ratio {Nes_ratio[0]}"
-        
+
         C = input_channels // Nes_ratio[0]
         self.C = C
         
@@ -118,18 +158,26 @@ class Nes2Net(nn.Module):
         self.bn = nn.BatchNorm1d(input_channels)
         self.relu = nn.ReLU()
         self.pool_func = pool_func
-        
-        # שכבת הסיווג הסופית
+
+        # Final classification head.
         final_dim = input_channels
         if pool_func == 'ASTP':
-            final_dim = input_channels * 2 # ASTP מכפיל את המימדים (mean + std)
+            final_dim = input_channels * 2  # ASTP doubles dimensions (mean + std).
             self.pooling = ASTP(in_dim=input_channels, bottleneck_dim=128)
-            
-        self.fc = nn.Linear(final_dim, 2) # שיניתי ל-2 מחלקות: Real/Fake
+
+        self.fc = nn.Linear(final_dim, 2)  # Binary classes: Real/Fake.
 
     def forward(self, x):
-        # הציפייה לקלט: [Batch, Channels, Time]
-        
+        """Forward pass.
+
+        Args:
+            x: Input tensor shaped [batch, channels, time].
+
+        Returns:
+            Logits tensor shaped [batch, 2].
+        """
+        # Expected input: [Batch, Channels, Time]
+
         spx = torch.split(x, self.C, 1)
         for i in range(self.Nes_ratio - 1):
             if i == 0:
