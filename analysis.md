@@ -3,7 +3,7 @@
 ## Overview
 This project implements a proof-of-concept pipeline for detecting deepfake audio using pretrained speech backbones (WavLM and Whisper) and a lightweight classifier (Nes2Net). The workflow spans dataset organization, feature extraction, model training, and evaluation. It supports three modes: WavLM-only, Whisper-only, and fused WavLM+Whisper features.
 
-## High-Level Workflow Diagram (Textual)
+## High-Level Workflow Diagram
 1. **Prepare dataset** (`scripts/organize_data.py`)
    - Validate ASVspoof protocol/audio paths.
    - Split bonafide/spoof file lists into train/test subsets.
