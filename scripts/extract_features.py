@@ -37,6 +37,11 @@ def extract_for_folder(model_wavlm, model_whisper, processor, subfolder):
         try:
             # 1. טעינת אודיו
             waveform, sr = torchaudio.load(file_path)
+
+            # --- תוספת קטנה: המרה ל-Mono (ערוץ אחד) ---
+            # אם הקובץ הוא סטריאו (2 ערוצים), ניקח רק את הראשון
+            if waveform.shape[0] > 1:
+                waveform = waveform[:1, :]
             
             # 2. Resample ל-16kHz
             if sr != 16000:
