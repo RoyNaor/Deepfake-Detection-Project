@@ -36,7 +36,8 @@ class InferenceSystem(nn.Module):
         elif self.mode == 'fusion':
             input_dim = 1536
             
-        self.backend = Nes2Net(input_channels=input_dim)
+        # חובה להוסיף את pool_func='ASTP' כדי להתאים למודל שאומן
+        self.backend = Nes2Net(input_channels=input_dim, pool_func='ASTP')
 
     def forward(self, wav_input, whisper_input=None):
         wavlm_out = None
