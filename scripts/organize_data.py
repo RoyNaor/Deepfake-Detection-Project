@@ -2,123 +2,116 @@ import os
 import shutil
 import random
 
-# --- הגדרות (חובה לשנות את השורה הראשונה!) ---
+# -------------------------
+# CONFIG
+# -------------------------
 
-# 1. איפה נמצאת התיקייה שחילצת מה-ZIP? (נתיב מלא)
-# שימי לב: זה הנתיב לתיקייה הראשית שנוצרה אחרי החילוץ
-SOURCE_ROOT = r"C:\Users\amitn\Downloads\LA" 
+SOURCE_ROOT = r"C:\Users\amitn\Downloads\LA"
+PROJECT_ROOT = r"./"
 
-# 2. איפה הפרויקט שלך נמצא?
-PROJECT_ROOT = r"./" # זה אומר "בתיקייה הנוכחית"
+TOTAL_SAMPLES = 65000
+TRAIN_RATIO = 0.8  # 80% train
 
-# 3. כמה קבצים אנחנו רוצים?
-NUM_TRAIN_REAL = 2000
-NUM_TRAIN_FAKE = 2000
-NUM_TEST_REAL = 500
-NUM_TEST_FAKE = 500
+ORIGINAL_PROTO = os.path.join(
+    SOURCE_ROOT,
+    "ASVspoof2019_LA_cm_protocols",
+    "ASVspoof2019.LA.cm.train.trn.txt"
+)
 
-# --- נתיבים פנימיים (אל תשני אלא אם כן את יודעת מה את עושה) ---
-ORIGINAL_PROTO = os.path.join(SOURCE_ROOT, "ASVspoof2019_LA_cm_protocols", "ASVspoof2019.LA.cm.train.trn.txt")
-ORIGINAL_AUDIO = os.path.join(SOURCE_ROOT, "ASVspoof2019_LA_train", "flac")
+ORIGINAL_AUDIO = os.path.join(
+    SOURCE_ROOT,
+    "ASVspoof2019_LA_train",
+    "flac"
+)
 
-DEST_TRAIN_DIR = os.path.join(PROJECT_ROOT, "data", "raw_audio", "train")
-DEST_TEST_DIR = os.path.join(PROJECT_ROOT, "data", "raw_audio", "test")
+DEST_TRAIN_DIR = os.path.join(PROJECT_ROOT, "data", "raw", "train")
+DEST_TEST_DIR = os.path.join(PROJECT_ROOT, "data", "raw", "test")
 DEST_PROTO_DIR = os.path.join(PROJECT_ROOT, "data", "protocols")
 
-def setup_data():
-    print("--- מתחיל בארגון הדאטה ---")
-    
-    # 1. בדיקה שהמקור קיים
-    if not os.path.exists(ORIGINAL_PROTO):
-        print(f"שגיאה: לא מצאתי את קובץ הפרוטוקול בנתיב:\n{ORIGINAL_PROTO}")
-        return
-    if not os.path.exists(ORIGINAL_AUDIO):
-        print(f"שגיאה: לא מצאתי את תיקיית האודיו בנתיב:\n{ORIGINAL_AUDIO}")
-        return
 
-    # 2. יצירת תיקיות היעד
+def setup_data():
+    print("🚀 Organizing dataset (65K experiment)")
+
     os.makedirs(DEST_TRAIN_DIR, exist_ok=True)
     os.makedirs(DEST_TEST_DIR, exist_ok=True)
     os.makedirs(DEST_PROTO_DIR, exist_ok=True)
 
-    # 3. קריאת הפרוטוקול ומיון לקבוצות
-    print("קורא את רשימת הקבצים המקורית...")
     real_files = []
     fake_files = []
-    
+
+    print("📖 Reading protocol...")
     with open(ORIGINAL_PROTO, 'r') as f:
         for line in f:
             parts = line.strip().split()
             filename = parts[1]
-            label = parts[-1] # 'bonafide' or 'spoof'
-            
-            if label == 'bonafide':
+            label = parts[-1]
+
+            if label == "bonafide":
                 real_files.append(filename)
             else:
                 fake_files.append(filename)
 
-    # ערבוב אקראי כדי למנוע הטיות
     random.shuffle(real_files)
     random.shuffle(fake_files)
-    
-    print(f"נמצאו סך הכל: {len(real_files)} אמיתיים, {len(fake_files)} מזויפים.")
 
-    # 4. חלוקה ל-Train ו-Test
-    # Train
-    train_real = real_files[:NUM_TRAIN_REAL]
-    train_fake = fake_files[:NUM_TRAIN_FAKE]
-    
-    # Test (לוקחים מהסוף כדי שלא יהיו כפילויות עם האימון!)
-    test_real = real_files[-NUM_TEST_REAL:]
-    test_fake = fake_files[-NUM_TEST_FAKE:]
+    print(f"Total available: {len(real_files)} real, {len(fake_files)} fake")
 
-    print(f"נבחרו לאימון: {len(train_real)} אמיתיים, {len(train_fake)} מזויפים.")
-    print(f"נבחרו לטסט: {len(test_real)} אמיתיים, {len(test_fake)} מזויפים.")
+    # -------------------------
+    # Balanced Selection
+    # -------------------------
 
-    # 5. פונקציית העתקה ויצירת פרוטוקול חדש
-    def process_subset(file_list, dest_dir, protocol_name, label_map):
-        new_proto_path = os.path.join(DEST_PROTO_DIR, protocol_name)
-        
-        print(f"מעתיק קבצים ל-{dest_dir}...")
-        with open(new_proto_path, 'w') as f_proto:
+    max_per_class = TOTAL_SAMPLES // 2
+
+    real_files = real_files[:max_per_class]
+    fake_files = fake_files[:max_per_class]
+
+    train_size = int(TRAIN_RATIO * max_per_class)
+    test_size = max_per_class - train_size
+
+    train_real = real_files[:train_size]
+    test_real = real_files[train_size:]
+
+    train_fake = fake_files[:train_size]
+    test_fake = fake_files[train_size:]
+
+    print(f"Train: {len(train_real)} real + {len(train_fake)} fake")
+    print(f"Test: {len(test_real)} real + {len(test_fake)} fake")
+
+    # -------------------------
+    # Copy Function
+    # -------------------------
+
+    def copy_subset(file_list, dest_dir, proto_name, real_set):
+        proto_path = os.path.join(DEST_PROTO_DIR, proto_name)
+
+        with open(proto_path, "w") as f_proto:
             for fname in file_list:
-                # העתקת הקובץ הפיזי
-                src_path = os.path.join(ORIGINAL_AUDIO, fname + ".flac")
-                dst_path = os.path.join(dest_dir, fname + ".flac")
-                
-                try:
-                    shutil.copy2(src_path, dst_path)
-                    
-                    # קביעת התווית (אם הקובץ ברשימת האמיתיים או המזויפים)
-                    # נכתוב את זה בפורמט פשוט: filename label (0 or 1)
-                    # 1 = Real, 0 = Fake (או להפך, איך שנוח לך, כאן נעשה: bonafide=1, spoof=0)
-                    is_real = 1 if fname in label_map['real'] else 0
-                    label_str = "bonafide" if is_real else "spoof"
-                    
-                    f_proto.write(f"{fname} {label_str}\n")
-                    
-                except FileNotFoundError:
-                    print(f"Warning: File {fname} not found via path {src_path}")
+                src = os.path.join(ORIGINAL_AUDIO, fname + ".flac")
+                dst = os.path.join(dest_dir, fname + ".flac")
 
-    # ביצוע העתקה לאימון
-    # מאחדים את הרשימות
-    train_all = train_real + train_fake
-    random.shuffle(train_all) # מערבבים שוב כדי שהפרוטוקול לא יהיה מסודר מדי
-    
-    # יוצרים מילון עזר לזיהוי מהיר
+                try:
+                    shutil.copy2(src, dst)
+
+                    label_str = "bonafide" if fname in real_set else "spoof"
+                    f_proto.write(f"{fname} {label_str}\n")
+
+                except FileNotFoundError:
+                    print(f"⚠️ Missing file: {fname}")
+
     real_set = set(real_files)
-    label_map = {'real': real_set} # כל מה שלא פה הוא fake
-    
-    process_subset(train_all, DEST_TRAIN_DIR, "train_protocol.txt", label_map)
-    
-    # ביצוע העתקה לטסט
+
+    # Train
+    train_all = train_real + train_fake
+    random.shuffle(train_all)
+    copy_subset(train_all, DEST_TRAIN_DIR, "train_protocol.txt", real_set)
+
+    # Test
     test_all = test_real + test_fake
     random.shuffle(test_all)
-    process_subset(test_all, DEST_TEST_DIR, "test_protocol.txt", label_map)
+    copy_subset(test_all, DEST_TEST_DIR, "test_protocol.txt", real_set)
 
-    print("\n--- סיימנו! ---")
-    print(f"הקבצים הועתקו לתיקיית data/raw_audio")
-    print(f"נוצרו קבצי פרוטוקול חדשים ב-data/protocols")
+    print("✅ Done. 65K dataset ready.")
+
 
 if __name__ == "__main__":
     setup_data()
