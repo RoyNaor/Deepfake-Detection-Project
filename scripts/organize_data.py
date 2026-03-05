@@ -51,6 +51,7 @@ def setup_data():
             else:
                 fake_files.append(filename)
 
+    # Shuffle to ensure randomness, so the model wont learn any order-based patterns
     random.shuffle(real_files)
     random.shuffle(fake_files)
 
@@ -81,6 +82,11 @@ def setup_data():
     # Copy Function
     # -------------------------
 
+    # FIX (?): this function dosnt seperate real and fake files into different folders, 
+    # it might be causing problems in 'extract_features.py' when it tries to label the data, 
+    # because it checks if the file is in the real_set, but all files are in the same folder, 
+    # so it might be labeling all files as real, which is a problem. To fix this, we can create two separate folders for real and fake files. 
+    
     def copy_subset(file_list, dest_dir, proto_name, real_set):
         proto_path = os.path.join(DEST_PROTO_DIR, proto_name)
 

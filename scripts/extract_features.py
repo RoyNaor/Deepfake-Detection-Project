@@ -11,7 +11,7 @@ from transformers import WavLMModel, WhisperModel, WhisperProcessor
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 SAMPLE_RATE = 16000
-DURATION = 4  # seconds
+DURATION = 4  # Audio length inseconds
 MAX_SAMPLES = SAMPLE_RATE * DURATION
 
 RAW_AUDIO_DIR = "./data/raw"
@@ -88,6 +88,32 @@ def get_aligned_features(waveform, model_wavlm, model_whisper, processor):
         torch.zeros(T_whisper - real_frames_whisper)
     ])
 
+    # FIX: Whisper auto-pads audio to 30s (1500 frames). 
+    # Since both WavLM and Whisper output at exactly 50Hz, interpolation squashes 30s into 4s and ruins the alignment.
+    # Instead, we simply slice Whisper's output to match WavLM's exact length (T_wav).
+    # when using this- delete step 4 and put this code instead the original end of step 3.
+    
+    # with torch.no_grad():
+    #     whisper_out = model_whisper.encoder(whisper_input_features)
+    #     whisper_feats = whisper_out.last_hidden_state  # [B, 1500, 768]
+
+    # # --- 4️⃣ Align Time Dimensions & Masks (FIXED) ---
+    
+    # # Slice Whisper to match exactly the 4 seconds (T_wav)
+    # # This throws away the 26 seconds of padded silence Whisper automatically added
+    # whisper_feats = whisper_feats[:, :T_wav, :] 
+    
+    # # Since both operate at the exact same time resolution (50Hz),
+    # # the mask for Whisper is exactly the same as the mask for WavLM!
+    # whisper_mask = wavlm_mask.clone()
+
+    # return (
+    #     wavlm_feats.cpu(),
+    #     whisper_feats.cpu(),
+    #     wavlm_mask,
+    #     whisper_mask
+    # )
+
     # -----------------------------
     # 4️⃣ Align Time Dimensions
     # -----------------------------
@@ -125,6 +151,7 @@ def process_dataset(input_dir, output_dir, label,
     files = [f for f in os.listdir(input_dir)
              if f.endswith(('.flac', '.wav'))]
 
+    # Loop through all the audio files
     for fname in tqdm(files, desc=f"Processing {os.path.basename(input_dir)}"):
         path = os.path.join(input_dir, fname)
         waveform, sr = torchaudio.load(path)
@@ -173,6 +200,7 @@ def main():
         "openai/whisper-small"
     ).to(DEVICE).eval()
 
+    # the processor makes the audio into spectograms for the whisper model 
     processor = WhisperProcessor.from_pretrained(
         "openai/whisper-small"
     )
