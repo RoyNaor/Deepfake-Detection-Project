@@ -1,3 +1,7 @@
+# Deep Learning
+torch
+torchaudio
+
 # AI & Audio Models
 transformers
 huggingface-hub
