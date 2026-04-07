@@ -1,0 +1,36 @@
+FusionGuardNet Training Summary
+========================================
+Device: cuda
+Processed dir: D:\Fusion_Model\dataset\data\processed
+Train samples: 84278
+Dev samples: 10534
+Test samples: 10536
+Train real/fake: 42139/42139
+Dev real/fake: 5267/5267
+Test real/fake: 5268/5268
+Epochs requested: 8
+Epochs completed: 8
+Batch size: 16
+Learning rate: 0.0001
+Weight decay: 0.0001
+Fixed len: 200
+Workers: 2
+Gradient clipping norm: 1.0
+Early stopping patience: 4
+LR scheduler: ReduceLROnPlateau(factor=0.5, patience=2)
+Best dev acc: 99.25% (epoch 8)
+Best dev loss: 0.0298
+Final test loss: 0.0324
+Final test acc: 99.18%
+All epoch checkpoints dir: D:\Fusion_Model\dataset\checkpoints\all_epochs
+
+Epoch History
+----------------------------------------
+Epoch 01 | Train Loss: 0.1799 | Train Acc: 92.60% | Dev Loss: 0.0626 | Dev Acc: 97.73% | LR: 0.000100
+Epoch 02 | Train Loss: 0.0768 | Train Acc: 97.48% | Dev Loss: 0.0392 | Dev Acc: 98.72% | LR: 0.000100
+Epoch 03 | Train Loss: 0.0494 | Train Acc: 98.48% | Dev Loss: 0.0375 | Dev Acc: 98.76% | LR: 0.000100
+Epoch 04 | Train Loss: 0.0335 | Train Acc: 98.94% | Dev Loss: 0.0345 | Dev Acc: 98.86% | LR: 0.000100
+Epoch 05 | Train Loss: 0.0278 | Train Acc: 99.16% | Dev Loss: 0.0424 | Dev Acc: 98.83% | LR: 0.000100
+Epoch 06 | Train Loss: 0.0226 | Train Acc: 99.33% | Dev Loss: 0.0382 | Dev Acc: 98.89% | LR: 0.000100
+Epoch 07 | Train Loss: 0.0186 | Train Acc: 99.47% | Dev Loss: 0.0322 | Dev Acc: 99.17% | LR: 0.000100
+Epoch 08 | Train Loss: 0.0186 | Train Acc: 99.49% | Dev Loss: 0.0298 | Dev Acc: 99.25% | LR: 0.000100
