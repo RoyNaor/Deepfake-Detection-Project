@@ -2,17 +2,9 @@
 
 1.1. Challenges in Audio-Based Deepfake Detection
 
-Recent advances in neural text-to-speech (TTS) and voice conversion have made it significantly easier to generate synthetic speech that is perceptually indistinguishable from real human voice. This creates concrete security risks: fake audio can bypass voice authentication systems, enable financial fraud, and spread disinformation. The problem is well-documented through the ASVspoof benchmark series — the standard evaluation framework in this field. On ASVspoof 2019, classical detection methods based on features like MFCC and LFCC achieved around 8% Equal Error Rate (EER), reflecting a fundamental limitation: these features were designed for speech recognition, not artifact detection, and miss the subtle inconsistencies that modern vocoders introduce [Todisco2019].
+Recent advances in generative AI have made it significantly easier to produce synthetic speech that sounds indistinguishable from a real human voice. These audio deepfakes pose a growing security threat — they can be used to bypass voice authentication systems, impersonate individuals in phone calls, or spread disinformation through fabricated recordings. As this technology becomes more accessible, the need for reliable automatic detection has become increasingly important.
 
-The deeper challenge is generalization. A detector trained on known spoofing systems often fails on new ones it has never seen, because it learns to recognize artifacts specific to the training attacks rather than general properties of synthetic speech [Muller2022]. This gap is the primary motivation for moving toward self-supervised representations, such as WavLM [Chen2022], which are pre-trained on large amounts of natural speech and generalize significantly better — bringing EER below 1% on the same benchmark. Our work builds on this direction, and further explores whether adding a speech recognition model (Whisper) alongside WavLM can capture complementary phonetic and prosodic cues that acoustic-only models tend to miss.
-
----
-
-**References for this section:**
-
-- [Todisco2019] M. Todisco, X. Wang, V. Vestman, et al., "ASVspoof 2019: Future Horizons in Spoofed and Fake Audio Detection," Interspeech, 2019.
-- [Muller2022] N. M. Müller, P. Czempin, F. Diekmann, et al., "Does Audio Deepfake Detection Generalize?" Interspeech, 2022.
-- [Chen2022] S. Chen, C. Wang, Z. Chen, et al., "WavLM: Large-Scale Self-Supervised Pre-Training for Full Stack Speech Processing," IEEE Journal of Selected Topics in Signal Processing, 2022.
+Building an effective detector is not straightforward. Classical approaches relied on handcrafted audio features that were designed for tasks like speech recognition, and they tend to miss the subtle artifacts that modern synthesis methods introduce. A deeper issue is generalization: a model trained to detect one type of fake audio may fail entirely when faced with a different synthesis method it has not seen before. In practice, new generation tools appear frequently, so a detector that only works on known attack types offers limited real-world protection. Our project addresses this challenge by exploring how combining different types of pre-trained audio representations can produce a more robust and accurate deepfake detector.
 
 ---
 
