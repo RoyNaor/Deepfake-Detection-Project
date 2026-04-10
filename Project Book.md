@@ -22,7 +22,13 @@ The motivation behind this design is that synthetic speech can fail in more than
 
 **2\. Related Work** 
 
-2.1 Classical and Modern Approaches to Audio Spoofing Detection (?)
+2.1 Classical and Modern Approaches to Audio Spoofing Detection
+
+Early anti-spoofing systems were built around handcrafted spectral features — most commonly MFCC, LFCC, and CQCC — combined with probabilistic classifiers such as Gaussian Mixture Models (GMM). These methods worked reasonably well against the synthesis systems of their time, which were based on concatenative or statistical parametric approaches that left clear spectral traces. However, as neural speech synthesis improved, these features became insufficient. They capture a coarse representation of the speech spectrum and discard phase information, making them blind to many of the subtle artifacts that modern vocoders introduce [Todisco2019].
+
+The field then moved toward deep learning. Convolutional networks applied to spectrograms (such as LCNN) improved detection by learning more discriminative patterns directly from data. A further step was taken by end-to-end models like RawNet2, which operate on raw audio waveforms and learn their own feature representation, removing the dependency on manually designed front-ends altogether. These models showed strong results on known attack types but still struggled to generalize across different synthesis methods [Tak2021].
+
+The most significant recent shift has been the adoption of large self-supervised models as feature extractors. Systems like AASIST [Jung2022], which combines self-supervised audio features with a graph attention network, represent the current state of the art for single-model detection. The core finding across this line of work is that features learned from large amounts of natural speech generalize better than handcrafted ones — which directly motivates the approach we take in this project.
 
 2.2 Pre-trained Speech and ASR Models: Capabilities and Applications of WavLM and Whisper \- לוודא פרטים
 
