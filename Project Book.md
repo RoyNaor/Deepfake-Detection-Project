@@ -2,7 +2,7 @@
 
 1.1. Challenges in Audio-Based Deepfake Detection
 
-Recent advances in generative AI have made it significantly easier to produce synthetic speech that sounds indistinguishable from a real human voice. These audio deepfakes pose a growing security threat — they can be used to bypass voice authentication systems, impersonate individuals in phone calls, or spread disinformation through fabricated recordings. As this technology becomes more accessible, the need for reliable automatic detection has become increasingly important.
+Recent advances in generative AI have made it significantly easier to produce synthetic speech that sounds indistinguishable from a real human voice. These audio deepfakes pose a growing security threat - they can be used to bypass voice authentication systems, impersonate individuals in phone calls, or spread disinformation through fabricated recordings. As this technology becomes more accessible, the need for reliable automatic detection has become increasingly important.
 
 Building an effective detector is not straightforward. Classical approaches relied on handcrafted audio features that were designed for tasks like speech recognition, and they tend to miss the subtle artifacts that modern synthesis methods introduce. A deeper issue is generalization: a model trained to detect one type of fake audio may fail entirely when faced with a different synthesis method it has not seen before. In practice, new generation tools appear frequently, so a detector that only works on known attack types offers limited real-world protection. Our project addresses this challenge by exploring how combining different types of pre-trained audio representations can produce a more robust and accurate deepfake detector.
 
