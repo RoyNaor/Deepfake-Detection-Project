@@ -2,6 +2,7 @@ import os
 import sys
 import csv
 import random
+import numpy as np
 from datetime import datetime
 
 import torch
@@ -9,6 +10,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 import matplotlib.pyplot as plt
+
+from sklearn.metrics import roc_curve, auc
+from scipy.optimize import brentq
+from scipy.interpolate import interp1d
 
 """
 =============================================================================
@@ -191,6 +196,43 @@ def compute_binary_metrics(y_true, y_pred):
         "f1_fake": f1,
     }
 
+
+def compute_eer(y_true, y_scores):
+    """
+    computes the Equal Error Rate (EER) and the corresponding threshold from the true labels and predicted scores.
+    """
+    fpr, tpr, thresholds = roc_curve(y_true, y_scores, pos_label=1)
+    
+    eer = brentq(lambda x : 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
+    
+    # Find the optimal threshold corresponding to the EER
+    optimal_threshold = interp1d(fpr, thresholds)(eer)
+    
+    return eer, optimal_threshold, fpr, tpr
+
+
+def save_roc_curve_plot(fpr, tpr, eer, save_path):
+    """
+    Computes the AUC and saves the ROC curve plot with the EER point marked.
+    """
+    roc_auc = auc(fpr, tpr)
+    plt.figure(figsize=(7, 6))
+    plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (AUC = {roc_auc:.4f})')
+    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    
+    plt.plot(eer, 1-eer, 'ro', label=f'EER = {eer:.4f}')
+    
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate (FAR)')
+    plt.ylabel('True Positive Rate (1 - FRR)')
+    plt.title(f'ROC Curve - Epoch {TARGET_EPOCH}')
+    plt.legend(loc="lower right")
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.close()
+
 # --------------------------------------------------
 # Save helpers
 # --------------------------------------------------
@@ -322,7 +364,9 @@ def evaluate_test(model, loader, criterion):
     metrics = compute_binary_metrics(all_labels, all_preds)
     mistakes = [r for r in all_records if not r["is_correct"]]
 
-    return avg_loss, acc, metrics, all_records, mistakes
+    all_scores = [r["prob_fake"] for r in all_records]
+
+    return avg_loss, acc, metrics, all_records, mistakes, all_labels, all_scores
 
 # --------------------------------------------------
 # Main test
@@ -378,7 +422,11 @@ def test():
 
     criterion = nn.CrossEntropyLoss()
 
-    test_loss, test_acc, metrics, all_records, mistakes = evaluate_test(model, test_loader, criterion)
+    test_loss, test_acc, metrics, all_records, mistakes, y_true, y_scores = evaluate_test(model, test_loader, criterion)
+
+    eer_val, opt_thresh, fpr, tpr = compute_eer(y_true, y_scores)
+
+    roc_png_path = os.path.join(run_dir, f"roc_curve_epoch_{TARGET_EPOCH:02d}.png")
 
     print("\n" + "=" * 60)
     print("FINAL TEST RESULTS")
@@ -386,6 +434,8 @@ def test():
     print(f"Epoch tested     : {TARGET_EPOCH}")
     print(f"Test Loss        : {test_loss:.4f}")
     print(f"Test Accuracy    : {test_acc:.2f}%")
+    print(f"EER              : {eer_val:.4f} ({eer_val*100:.2f}%)")
+    print(f"Optimal Threshold: {opt_thresh:.4f}")
     print()
     print("Confusion Matrix (class 0 = real, class 1 = fake)")
     print(f"TN: {metrics['tn']} | FP: {metrics['fp']}")
@@ -415,6 +465,9 @@ def test():
         f.write(f"Test Loss: {test_loss:.4f}\n")
         f.write(f"Test Accuracy: {test_acc:.2f}%\n\n")
 
+        f.write(f"EER: {eer_val:.4f} ({eer_val*100:.2f}%)\n")
+        f.write(f"Optimal Threshold: {opt_thresh:.4f}\n\n")
+
         f.write("Confusion Matrix (class 0 = real, class 1 = fake)\n")
         f.write(f"TN: {metrics['tn']} | FP: {metrics['fp']}\n")
         f.write(f"FN: {metrics['fn']} | TP: {metrics['tp']}\n\n")
@@ -431,9 +484,13 @@ def test():
         f.write(f"Mistakes CSV: {mistakes_csv_path}\n")
         f.write(f"Confusion matrix PNG: {cm_png_path}\n")
 
+        f.write(f"ROC Curve PNG: {roc_png_path}\n")
+
     save_predictions_csv(all_records, predictions_csv_path)
     save_mistakes_csv(mistakes, mistakes_csv_path)
     save_confusion_matrix_plot(metrics, cm_png_path)
+    save_roc_curve_plot(fpr, tpr, eer_val, roc_png_path)
+
 
     print(f"\nTest report saved to: {report_path}")
     print(f"Predictions CSV saved to: {predictions_csv_path}")
