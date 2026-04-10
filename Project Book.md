@@ -10,7 +10,9 @@ Building an effective detector is not straightforward. Classical approaches reli
 
 1.2. Project Goals: Improving Spoofing Classification Using Pre-trained Models
 
-The main goal of our project is to improve how accurately a system can tell if an audio file is real or fake. Instead of training a feature extractor from scratch, we decided to use large pre-trained models that already understand audio well. We want to see if combining different types of representations from these models can help the classifier catch subtle mistakes in the fake audio. Ultimately, we aim to deliver a working pipeline that achieves better detection results than standard baseline models.
+The main goal of this project is to build a system that can reliably distinguish between real and synthetic speech. Rather than designing handcrafted features or training a model from scratch, we chose to leverage large pre-trained models — models that have already learned rich representations of natural speech from massive amounts of audio data. Our reasoning is that these representations capture patterns in speech that are far more informative than what simple acoustic features can express, and that a classifier built on top of them will be better equipped to detect the subtle inconsistencies that fake audio introduces.
+
+Beyond using a single pre-trained model, a key goal was to explore whether combining two models with different strengths could improve detection further. Different types of synthesis errors leave different traces in the audio — some are more signal-level, others relate to how speech sounds at a phonetic or rhythmic level. By giving the classifier a richer, multi-perspective view of the input, we aimed to improve both accuracy and robustness. The end result is a complete, working detection pipeline that we evaluate on a standard benchmark and compare against baseline approaches.
 
 1.3. Our Contribution: Integrating Whisper with WavLM in the Nes2Net Architecture
 
