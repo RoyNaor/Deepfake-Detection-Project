@@ -16,7 +16,9 @@ Beyond using a single pre-trained model, a key goal was to explore whether combi
 
 1.3. Our Contribution: Integrating Whisper with WavLM in the Nes2Net Architecture
 
-Our main addition in this project is integrating the Whisper model alongside WavLM into the Nes2Net network. Normally, WavLM is used to look at the low-level acoustic details of the voice. We hypothesized that by adding Whisper, which is designed for speech recognition, we could also capture higher-level phonetic and semantic features. By combining the outputs from both models, we give the Nes2Net classifier more information to work with, which we demonstrate improves its overall ability to detect spoofed audio.
+Our main contribution is the design and implementation of FusionGuardNet, a detection system that combines two pre-trained models — WavLM and Whisper — to extract complementary representations from the same audio input. WavLM is a self-supervised acoustic model trained on large amounts of raw speech; it captures low-level signal patterns and spectral characteristics that reflect how the voice sounds. Whisper, originally built for automatic speech recognition, brings a different perspective by encoding phonetic and prosodic information — how speech is structured at a linguistic level. Both representations are passed through a learnable fusion layer and into a shared Nes2Net classifier, which produces the final real/fake decision.
+
+The motivation behind this design is that synthetic speech can fail in more than one way — some artifacts are acoustic, others are phonetic — and combining two models that look at the signal differently gives the system a better chance of catching both. We evaluate this on the ASVspoof 2019 benchmark and show that the dual-encoder approach achieves 99.18% test accuracy, with equal false positive and false negative rates, outperforming single-model baselines.
 
 **2\. Related Work** 
 
