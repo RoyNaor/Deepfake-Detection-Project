@@ -85,13 +85,59 @@ The pipeline also produces a protocol file and a summary file for each split, re
 
 **4\. System Architecture and Proposed Methodology**
 
-4.1 Pipeline Overview
+4.1 End-to-End System Overview
 
-4.2 Acoustic and Semantic Feature Extraction: Utilizing WavLM and Whisper
+FusionGuardNet is built around three sequential stages that are cleanly separated by design.
 
-4.3 Feature Fusion: Combining the Outputs of WavLM and Whisper (Maybe we should combine this part with the next one)
+The first stage is offline feature extraction. Before any training takes place, every audio clip in the dataset is passed through two frozen pre-trained encoders — WavLM and Whisper — and their output feature sequences are saved to disk as PyTorch tensor files. This happens once and is not repeated during training. The extraction process and the resulting file format are described in detail in section 3.2.
 
-4.4 The Classification Model: Adapting Nes2Net to Accept the Fused Features 
+The second stage is feature fusion. At training and inference time, the two pre-extracted feature sequences for a given clip are loaded from disk and combined by a small learnable module. The output is a single fused feature sequence of the same shape as each individual input.
+
+The third stage is classification. The fused sequence is passed through the Nes2Net backbone, which processes it with a stack of multi-scale residual blocks, reduces the temporal dimension via global pooling, and produces a two-class output (real or fake).
+
+The key architectural choice across all three stages is that the two pre-trained encoders are never fine-tuned. Their weights are frozen throughout. The only components that are trained are the fusion layer and the Nes2Net backbone. This keeps the number of trainable parameters small, prevents catastrophic forgetting of the rich representations learned during large-scale pre-training, and makes it feasible to train the entire system in a small number of epochs.
+
+4.2 Acoustic and Linguistic Feature Representations: WavLM and Whisper
+
+The decision to use two encoders rather than one was motivated by the observation that synthetic speech can fail in more than one way. Some artifacts are acoustic — unnatural spectral texture, phase inconsistencies, or voicing anomalies introduced by the signal-level synthesis process. Others are phonetic or prosodic — unnatural timing between phonemes, irregular rhythm, or inconsistencies in how stress and intonation are distributed across an utterance. A single encoder optimized for one type of information may be blind to the other. WavLM and Whisper were chosen because they represent two distinct perspectives on the same audio signal, trained under fundamentally different objectives.
+
+WavLM (microsoft/wavlm-base-plus) is a self-supervised speech model. It consists of a 12-layer Transformer encoder with 768-dimensional hidden states, 8 attention heads, and approximately 94.7 million parameters. It was pre-trained on around 94,000 hours of speech (Libri-Light, GigaSpeech, and VoxPopuli) using a masked prediction objective on noisy and clean speech pairs, which forces the model to develop a detailed internal representation of acoustic structure. For our task, WavLM's value lies in its sensitivity to low-level signal properties: fine-grained spectral and temporal patterns, voicing characteristics, and the subtle acoustic fingerprints that speech synthesis systems tend to leave behind.
+
+Whisper (openai/whisper-small) is a supervised automatic speech recognition model. Its encoder consists of a two-layer convolutional stem — which processes an 80-bin log-mel spectrogram and downsamples the temporal dimension by a factor of two — followed by 12 Transformer layers with 768-dimensional hidden states and 12 attention heads. It was pre-trained on approximately 680,000 hours of transcribed audio collected from diverse internet sources, with the objective of accurately transcribing spoken content. This ASR-driven training leads Whisper to encode phonetic and prosodic structure: how speech sounds are organized into phonemes, syllables, and words, and how those are distributed over time. Synthetic speech often contains phonetic timing irregularities and prosodic inconsistencies that fall outside WavLM's primary focus.
+
+A practical advantage of this pairing is that both encoders produce feature sequences with the same hidden dimension: 768. No projection layer is needed to make the two representations compatible before fusion. Both also operate on 16 kHz mono audio and produce output sequences at a comparable temporal resolution, which simplifies alignment. The temporal alignment procedure used when both outputs are not identical in length is described in section 3.2.
+
+4.3 Feature Fusion: Channel-wise Learnable Weighted Sum
+
+Given two feature sequences of identical shape — one from WavLM and one from Whisper, each of shape [B, 768, T] — the fusion module must produce a single sequence that carries information from both. We considered several approaches before settling on a channel-wise learnable weighted sum.
+
+Simple concatenation along the channel dimension would produce a 1536-dimensional sequence. This doubles the input size to the backbone and would require either a projection layer to restore the original dimensionality or a backbone with twice the input capacity. Both options add parameters and complexity without a clear benefit.
+
+Cross-attention fusion, where one sequence attends over the other, allows richer cross-modal interaction but introduces significant computational overhead and additional design choices (number of heads, residual structure, positional encoding). Given that both encoders are frozen and the fusion is meant to be a lightweight learned combination, this felt like an unnecessary level of complexity.
+
+We instead use a channel-wise learnable weighted sum, implemented in the `LearnableWeightedSumFusion` module. For each of the 768 channels, the module maintains two learnable scalar parameters: one associated with the WavLM stream and one with the Whisper stream. Before combining, these two scalars are passed through a softmax over the two-source axis, ensuring they sum to 1.0 per channel. The fused value at channel c and time step t is then:
+
+fused[c, t] = w_wavlm[c] · wavlm[c, t] + w_whisper[c] · whisper[c, t]
+
+where w_wavlm[c] + w_whisper[c] = 1 for every channel c.
+
+This design has several practical advantages. The total number of parameters in the fusion layer is 2 × 768 = 1,536 scalars — negligible relative to the backbone. The output remains a 768-dimensional sequence, so the backbone architecture does not need to change based on the fusion approach. And the softmax gating is interpretable: after training, the learned weights reveal which channels the model has come to rely more on WavLM for and which it trusts Whisper on, potentially reflecting a learned division between acoustic and linguistic processing.
+
+4.4 The Classification Model: Adapting Nes2Net to Accept the Fused Features
+
+The Nes2Net backbone receives the fused feature sequence of shape [B, 768, T=200] and produces a two-class prediction.
+
+Its structure is organized around two nested levels of channel decomposition, following the Nes2Net design principle of building hierarchical multi-scale representations without reducing temporal resolution until the final pooling step.
+
+At the outer level, the 768 input channels are divided into 8 groups of 96 channels each. Seven of these groups are processed by their own Bottle2neck block; the eighth passes through unchanged as a residual bypass. The groups are not processed independently: group i receives its own channel slice plus the cumulative output from the previous block before being processed. This cross-group residual accumulation creates nested dependencies across the channel groups and allows later blocks to refine representations built by earlier ones.
+
+Each Bottle2neck block operates on a 96-channel slice and applies an inner Res2Net decomposition. The 96 channels are split into 8 sub-groups of 12. Seven of these sub-groups pass through a dilated 3×3 convolution (dilation=2) in a hierarchical residual chain: sub-group i receives its own slice added to the output of the previous sub-group's convolution before being convolved. This creates a range of effective receptive fields within a single block, allowing it to capture both short-range and longer-range temporal patterns simultaneously. The seventh sub-group's output and the eighth (unchanged) sub-group are concatenated and projected back to 96 channels through a 1×1 convolution. After projection, a Squeeze-and-Excitation module recalibrates channel importance: it computes a global average over the time axis, passes the result through a two-layer bottleneck (96 → 12 → 96) with a sigmoid activation, and multiplies the output back channel-wise. This lets the block selectively amplify channels that carry discriminative information and suppress those that do not. A residual connection adds the block's input to its output.
+
+After the seven Bottle2neck blocks, all eight groups (seven processed, one bypass) are concatenated to reconstruct the full [B, 768, T] representation. A batch normalization and ReLU are applied before temporal aggregation.
+
+The temporal dimension is collapsed by global mean pooling — averaging across all T=200 time steps — producing a single 768-dimensional vector per sample. A dropout layer (p=0.5) is applied for regularization, followed by a linear layer that maps the 768-dimensional vector to 2 output logits, one per class.
+
+The entire backbone was designed to process high-dimensional foundation model features without bottleneck projections, maintaining the full 768-dimensional representation through all intermediate stages. The multi-scale structure (outer nested groups and inner Bottle2neck sub-groups, both with hierarchical residuals) gives the classifier sensitivity to spoofing artifacts at multiple temporal scales, while the SE modules ensure that uninformative channels are down-weighted at each processing step.
 
 **5\. Experimental Setup**
 
