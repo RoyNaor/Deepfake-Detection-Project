@@ -46,13 +46,21 @@ To train and test our model, we use the ASVspoof 2024 and 2019 dataset, which is
 
 **5\. Experimental Setup**
 
-5.1 Environment and Software Libraries 
+5.1 Environment and Software Libraries
 
-5.2 Training Procedure (Loss function, optimization algorithm..)
+All experiments were run on a CUDA-enabled GPU, with automatic fallback to CPU when a GPU was not available. The project is implemented in Python using PyTorch as the main deep learning framework, with Torchaudio for audio loading and resampling. We used the Hugging Face Transformers library to load the pre-trained WavLM and Whisper models. Additional libraries include NumPy and Pandas for data handling, scikit-learn for computing evaluation metrics, and Matplotlib and Seaborn for visualizing results. The full list of dependencies is specified in the project's requirements.txt file.
 
-5.3 Hyperparameter Tuning (?)
+5.2 Training Procedure
 
-5.4 Evaluation Metrics (e.g., Equal Error Rate (EER), Accuracy, AUC)
+We trained the model using the Adam optimizer with a learning rate of 1e-4 and a weight decay of 1e-4 for L2 regularization. The loss function used is standard Cross-Entropy Loss, which is well suited for our binary classification task (real vs. fake). To prevent instability during training, we applied gradient clipping with a maximum norm of 1.0. We also used a ReduceLROnPlateau scheduler that halves the learning rate if the validation loss does not improve for 2 consecutive epochs. Training ran for a total of 8 epochs with a batch size of 16, and we applied early stopping with a patience of 4 epochs to avoid overfitting. The best model checkpoint was saved based on the best combination of validation accuracy and validation loss. To ensure reproducibility, we fixed the random seed to 42 for PyTorch and the Python random module.
+
+5.3 Hyperparameter Configuration
+
+The main architectural hyperparameters of the Nes2Net classifier were kept consistent with the original design. The input feature dimension is 768, matching the output size of both WavLM and Whisper encoders. The NES ratio was set to (8, 8) and the dilation factor to 2, as used in the Bottle2neck blocks. A dropout rate of 0.5 was applied in the backbone, and global average pooling was used to aggregate temporal features. For audio preprocessing, all clips were resampled to 16,000 Hz and truncated or zero-padded to a fixed length of 4 seconds (64,000 samples), resulting in a fixed temporal sequence length of 200 time steps after feature extraction. The feature fusion module uses a learnable weighted sum with softmax normalization over the two feature sources, meaning the model learns how much to rely on WavLM versus Whisper for each feature dimension. The WavLM model used is microsoft/wavlm-base-plus and the Whisper model is openai/whisper-small.
+
+5.4 Evaluation Metrics
+
+We evaluated our model using classification accuracy, Cross-Entropy loss, and a confusion-matrix-based analysis that includes precision, recall, and F1-score for both the real and fake classes. Since our dataset is balanced (50% real, 50% fake), accuracy is a reliable primary metric. After full training, the model achieved a test accuracy of 99.18%, with a test loss of 0.0324. The confusion matrix on the test set showed 5,225 true negatives, 5,225 true positives, and only 43 false positives and 43 false negatives out of 10,536 total samples, yielding a precision, recall, and F1-score of approximately 0.99 for both classes. All metrics were computed after running inference in evaluation mode with no gradient updates, using full-batch sweeps over the test set.
 
 **6\. Results and Discussion**
 
