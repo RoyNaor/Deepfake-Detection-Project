@@ -1,0 +1,32 @@
+FusionGuardNet Test Report
+========================================
+Run dir: D:\Fusion_Model\dataset2\results\test_runs\test_epoch_07_2026-04-12_09-31-23
+Device: cuda
+Target epoch: 7
+Checkpoint: D:\Fusion_Model\dataset2\checkpoints\all_epochs\fusion_guard_net_epoch_07.pth
+Processed dir: D:\Fusion_Model\dataset2\data\processed
+Test samples: 17467
+Test real/fake: 8729/8738
+
+Test Loss: 0.0349
+Test Accuracy: 99.34%
+
+EER: 0.0060 (0.60%)
+Optimal Threshold: 0.8938
+
+Confusion Matrix (class 0 = real, class 1 = fake)
+TN: 8652 | FP: 77
+FN: 38 | TP: 8700
+
+Precision (fake): 0.9912
+Recall    (fake): 0.9957
+F1 score  (fake): 0.9934
+Total mistakes: 115
+
+Saved files
+----------------------------------------
+Report: D:\Fusion_Model\dataset2\results\test_runs\test_epoch_07_2026-04-12_09-31-23\fusion_guard_net_test_report_epoch_07.txt
+Predictions CSV: D:\Fusion_Model\dataset2\results\test_runs\test_epoch_07_2026-04-12_09-31-23\all_predictions_epoch_07.csv
+Mistakes CSV: D:\Fusion_Model\dataset2\results\test_runs\test_epoch_07_2026-04-12_09-31-23\mistakes_epoch_07.csv
+Confusion matrix PNG: D:\Fusion_Model\dataset2\results\test_runs\test_epoch_07_2026-04-12_09-31-23\confusion_matrix_epoch_07.png
+ROC Curve PNG: D:\Fusion_Model\dataset2\results\test_runs\test_epoch_07_2026-04-12_09-31-23\roc_curve_epoch_07.png
