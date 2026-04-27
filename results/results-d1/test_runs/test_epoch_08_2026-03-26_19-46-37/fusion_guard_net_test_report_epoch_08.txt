@@ -1,0 +1,28 @@
+FusionGuardNet Test Report
+========================================
+Run dir: D:\Fusion_Model\dataset\results\test_runs\test_epoch_08_2026-03-26_19-46-37
+Device: cuda
+Target epoch: 8
+Checkpoint: D:\Fusion_Model\dataset\checkpoints\all_epochs\fusion_guard_net_epoch_08.pth
+Processed dir: D:\Fusion_Model\dataset\data\processed
+Test samples: 10536
+Test real/fake: 5268/5268
+
+Test Loss: 0.0324
+Test Accuracy: 99.18%
+
+Confusion Matrix (class 0 = real, class 1 = fake)
+TN: 5225 | FP: 43
+FN: 43 | TP: 5225
+
+Precision (fake): 0.9918
+Recall    (fake): 0.9918
+F1 score  (fake): 0.9918
+Total mistakes: 86
+
+Saved files
+----------------------------------------
+Report: D:\Fusion_Model\dataset\results\test_runs\test_epoch_08_2026-03-26_19-46-37\fusion_guard_net_test_report_epoch_08.txt
+Predictions CSV: D:\Fusion_Model\dataset\results\test_runs\test_epoch_08_2026-03-26_19-46-37\all_predictions_epoch_08.csv
+Mistakes CSV: D:\Fusion_Model\dataset\results\test_runs\test_epoch_08_2026-03-26_19-46-37\mistakes_epoch_08.csv
+Confusion matrix PNG: D:\Fusion_Model\dataset\results\test_runs\test_epoch_08_2026-03-26_19-46-37\confusion_matrix_epoch_08.png
