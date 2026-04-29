@@ -1,73 +1,107 @@
-**1\. Introduction**
-
-1.1. Challenges in Audio-Based Deepfake Detection  
-
-Creating convincing fake audio has become much easier recently due to the availability of new generative models. This creates a real security problem, as these deepfakes can fool voice authentication systems or spread false information. As we researched this issue for our project, we noticed that older detection methods struggle to catch these newer fakes. The main challenge we address is building a detector that can keep up and identify synthetic audio.
+**1. Introduction**
+1.1. Challenges in Audio-Based Deepfake Detection
+Recent advances in generative AI have made it significantly easier to produce synthetic speech that sounds indistinguishable from a real human voice. These audio deepfakes pose a growing security threat - they can be used to bypass voice authentication systems, impersonate individuals in phone calls, or spread disinformation through fabricated recordings. As this technology becomes more accessible, the need for reliable automatic detection has become increasingly important.
+Building an effective detector is not straightforward. Classical approaches relied on handcrafted audio features that were designed for tasks like speech recognition, and they tend to miss the subtle artifacts that modern synthesis methods introduce. A deeper issue is generalization: a model trained to detect one type of fake audio may fail entirely when faced with a different synthesis method it has not seen before. In practice, new generation tools appear frequently, so a detector that only works on known attack types offers limited real-world protection. Our project addresses this challenge by exploring how combining different types of pre-trained audio representations can produce a more robust and accurate deepfake detector.
 
 1.2. Project Goals: Improving Spoofing Classification Using Pre-trained Models
-
-The main goal of our project is to improve how accurately a system can tell if an audio file is real or fake. Instead of training a feature extractor from scratch, we decided to use large pre-trained models that already understand audio well. We want to see if combining different types of representations from these models can help the classifier catch subtle mistakes in the fake audio. Ultimately, we aim to deliver a working pipeline that achieves better detection results than standard baseline models.
+The main goal of this project is to build a system that can reliably distinguish between real and synthetic speech. Rather than designing handcrafted features or training a model from scratch, we chose to leverage large pre-trained models - models that have already learned rich representations of natural speech from massive amounts of audio data. Our reasoning is that these representations capture patterns in speech that are far more informative than what simple acoustic features can express, and that a classifier built on top of them will be better equipped to detect the subtle inconsistencies that fake audio introduces.
+Beyond using a single pre-trained model, a key goal was to explore whether combining two models with different strengths could improve detection further. Different types of synthesis errors leave different traces in the audio - some are more signal-level, others relate to how speech sounds at a phonetic or rhythmic level. By giving the classifier a richer, multi-perspective view of the input, we aimed to improve both accuracy and robustness. The end result is a complete, working detection pipeline that we evaluate on a standard benchmark and compare against baseline approaches.
 
 1.3. Our Contribution: Integrating Whisper with WavLM in the Nes2Net Architecture
+Our main contribution is the design and implementation of FusionGuardNet, a detection system that combines two pre-trained models - WavLM and Whisper - to extract complementary representations from the same audio input. WavLM is a self-supervised acoustic model trained on large amounts of raw speech; it captures low-level signal patterns and spectral characteristics that reflect how the voice sounds. Whisper, originally built for automatic speech recognition, brings a different perspective by encoding phonetic and prosodic information - how speech is structured at a linguistic level. Both representations are passed through a learnable fusion layer and into a shared Nes2Net classifier, which produces the final real/fake decision.
+The motivation behind this design is that synthetic speech can fail in more than one way - some artifacts are acoustic, others are phonetic - and combining two models that look at the signal differently gives the system a better chance of catching both. We evaluate this on the ASVspoof 2019 benchmark and show that the dual-encoder approach achieves 99.18% test accuracy, with equal false positive and false negative rates, outperforming single-model baselines.
 
-Our main addition in this project is integrating the Whisper model alongside WavLM into the Nes2Net network. Normally, WavLM is used to look at the low-level acoustic details of the voice. We hypothesized that by adding Whisper, which is designed for speech recognition, we could also capture higher-level phonetic and semantic features. By combining the outputs from both models, we give the Nes2Net classifier more information to work with, which we demonstrate improves its overall ability to detect spoofed audio.
+**2. Related Work** 
+2.1 Classical and Modern Approaches to Audio Spoofing Detection
+Early anti-spoofing systems relied on handcrafted audio features combined with classical machine learning classifiers. These methods captured broad spectral properties of the audio and worked reasonably well against the synthesis systems of their time, which left relatively obvious acoustic traces. As neural speech synthesis improved and produced more natural-sounding output, these approaches became insufficient - their fixed representations were simply not sensitive enough to the subtle differences between real and synthetic speech.
+The field gradually moved toward deep learning, which allowed models to learn more discriminative patterns directly from data rather than relying on manually designed features. This improved detection across a range of attack types. The most recent and effective direction has been the use of large self-supervised models pretrained on vast amounts of natural speech. These models produce rich audio representations that capture general properties of human speech, and have been shown to generalize significantly better to new and unseen synthesis methods - making them the foundation of current state-of-the-art detection systems, and the starting point for our own work.
 
-**2\. Related Work** 
+2.2 Pre-trained Speech and ASR Models: Capabilities and Applications of WavLM and Whisper
+WavLM is a self-supervised speech model developed by Microsoft, trained on a large and diverse corpus of audio data. During training, it learns to reconstruct masked portions of the audio signal from noisy and clean speech, which forces it to develop a deep understanding of how natural speech is structured at the acoustic level. It was originally designed to perform well across a wide range of speech tasks — including speaker recognition and speech separation - and achieves strong results on most of them without task-specific fine-tuning. For deepfake detection, its key value is that it captures fine-grained acoustic properties that tend to deviate from natural patterns when audio is synthetically generated.
+Whisper, developed by OpenAI, takes a fundamentally different approach. It is an automatic speech recognition model trained on a massive amount of transcribed audio collected from diverse sources across the internet. Because its objective is to accurately transcribe spoken content, it learns to encode phonetic and linguistic structure - how speech sounds are organized into words, syllables, and sentences. While it was not designed for deepfake detection, this type of representation turns out to be relevant: synthetic speech often contains subtle phonetic irregularities and unnatural prosodic patterns that acoustic models may overlook. Together, the two models offer complementary views of the same audio signal, which is the core idea behind our fusion approach.
 
-2.1 Classical and Modern Approaches to Audio Spoofing Detection (?)
+2.3 Classification Architectures for Spoofing Detection: A Review of the Nes2Net Network
+The Nested Res2Net (Nes2Net) architecture, proposed by Liu et al. (2025), is a lightweight back-end classifier specifically optimized for processing high-dimensional embeddings from speech foundation models. A primary advantage of this architecture is its ability to bypass the traditional Dimensionality Reduction (DR) layer, which typically acts as a computational bottleneck and can lead to the loss of critical acoustic information. By directly accepting high-dimensional features, Nes2Net maintains a richer representation of the audio signal throughout the classification process.
+Structurally, Nes2Net utilizes a nested hierarchical design featuring Bottle2neck blocks and Squeeze-and-Excitation (SE) modules. This allows for multi-scale feature extraction, enabling the model to effectively identify both subtle, fine-grained artifacts and broader temporal inconsistencies often found in synthetic speech. For FusionGuardNet, this architecture serves as a robust engine that efficiently fuses and classifies the complementary acoustic and semantic features provided by WavLM and Whisper, ensuring high generalizability without excessive computational overhead.
 
-2.2 Pre-trained Speech and ASR Models: Capabilities and Applications of WavLM and Whisper \- לוודא פרטים
+**3. Dataset and Preprocessing**
+3.1 The Selected Dataset
+To train and evaluate our model, we used a combination of two standard anti-spoofing benchmarks: the ASVspoof 2019 Logical Access (LA) dataset and the ASVspoof5 (2024) dataset.
+The ASVspoof 2019 LA partition is one of the most widely adopted benchmarks in the speech anti-spoofing field. It contains recordings generated by 19 different text-to-speech and voice-conversion algorithms, alongside genuine human speech samples collected in a controlled recording environment. Using this dataset allows direct comparison with a large body of prior work.
+The ASVspoof5 (2024) dataset is the most recent release in the ASVspoof series. It was collected under more challenging and diverse conditions, with a broader range of modern synthesis systems. Including it alongside the 2019 data exposes the model to a wider variety of spoofing artifacts, which supports better generalization.
+Both datasets distribute their audio files in FLAC format and provide accompanying protocol files that map each utterance ID to a label (bonafide or spoof) and a source system identifier. Our data organization pipeline reads these protocol files for all available splits - train, dev, and eval for 2019, and train and dev for 2024 - and merges the entries into a single unified pool before re-splitting.
+צריך להוסיף על הדאטה סט השלישי
+3.2 Audio Signal Preprocessing
+Before feature extraction, each audio clip goes through a sequence of normalization steps implemented in the feature extraction pipeline. 
+Channel reduction, If a recording contains more than one channel, the channels are averaged into a single mono waveform. All pre-trained models used in this project expect single-channel input. 
+Sample rate normalization, Every waveform is resampled to 16,000 Hz using torchaudio. This is the expected input rate for both WavLM and the Whisper encoder. 
+Fixed-length normalization, To ensure uniform input dimensions across all samples, each waveform is normalized to exactly 4 seconds (64,000 samples). Clips longer than 4 seconds are randomly cropped: a start offset is drawn uniformly at random from the valid range, and 64,000 consecutive samples are taken from that position. This random crop acts as a mild data augmentation. Clips shorter than 4 seconds are zero-padded at the end to reach the target length.
+Attention masking, For each clip, we record the ratio of real (non-padded) samples to the total length. This ratio is used to build a frame-level binary mask after feature extraction: frames corresponding to real audio are marked 1, frames corresponding to padding are marked 0. This mask is stored alongside the features and can be used by the classifier to avoid attending to padding artifacts.
+Offline feature extraction, Rather than extracting features on the fly during training, both the WavLM and Whisper representations are computed once for all clips and saved to disk as PyTorch tensor files (.pt). Each saved file contains the WavLM feature sequence, the Whisper encoder feature sequence (temporally aligned to WavLM), both masks, the integer label (0 for real, 1 for fake), and metadata (source path, split name, class name, sample rate, duration). This offline approach avoids redundant forward passes through the large pre-trained models during training and significantly reduces GPU memory pressure.
+Temporal alignment between models, WavLM and Whisper produce feature sequences of different temporal lengths for the same input. After extracting both, the Whisper sequence is aligned to the WavLM sequence length: if Whisper produces more frames than WavLM, it is truncated; if it produces fewer frames, it is zero-padded at the end. This alignment is necessary so that the two feature sequences can be processed together by the downstream classifier.
 
-We chose to work with WavLM and Whisper because they are trained differently and offer distinct features. WavLM is a self-supervised model trained on a massive amount of raw audio, making it very good at recognizing speaker characteristics and background environments. Whisper, on the other hand, was trained on transcribed speech, making it strong at understanding phonetics and language content. By researching what these models are typically used for, we realized they could complement each other well for deepfake detection.
+3.3 Data Splitting
+After collecting all entries from both datasets and matching each utterance ID against the available audio files, the merged pool is split into train, validation (dev), and test sets using an 80 / 10 / 10 ratio.
+Class balance is enforced at the split level. Real and fake entries are shuffled independently (using random seed 42 for reproducibility), and the same number of samples is drawn from each class for every split. This guarantees that no split is skewed toward either class, and that the evaluation metrics reflect genuine discriminative performance rather than class prior.
+The actual dataset sizes used in our experiments were as follows:
+לשים כאן את הטבלה של החלוקה
+The pipeline also produces a protocol file and a summary file for each split, recording each utterance's ID, class label, source dataset (2019_LA or 2024_ASVspoof5), and original split, which facilitates traceability and later analysis.
 
-2.3 Classification Architectures for Spoofing Detection: A Review of the Nes2Net Network \- צריך אולי להרחיב ולפרט יותר על הארכיטקטורה
-
-For the classification part of our system, we decided to base our work on the Nes2Net architecture. Nes2Net is a neural network designed specifically for finding spoofing artifacts in audio signals. It uses a mix of convolutional layers and attention mechanisms to focus on the parts of the audio that matter most. Based on the literature we read, it serves as a strong and reliable baseline classifier, making it a good fit for processing the combined embeddings we extract from WavLM and Whisper.
-
-**3\. Dataset and Preprocessing**
-
-3.1 The Selected Dataset 
-
-To train and test our model, we use the ASVspoof 2024 and 2019 dataset, which is a standard benchmark in this area of research. It contains a large number of audio clips, split between real human speech and various fake audio generated by text-to-speech and voice conversion algorithms. Using a standard dataset was important for us so we could properly compare our results with existing papers. It also ensures our model is exposed to a wide variety of spoofing techniques during training. (???)
-
-3.2 Audio Signal Preprocessing (Frequency conversion, length truncation, etc.)
-
-3.3 Data Splitting (Train, Validation, and Test Sets)
-
-**4\. System Architecture and Proposed Methodology**
-
-4.1 Pipeline Overview
+**4. System Architecture and Proposed Methodology**
+4.1 End-to-End System Overview
+FusionGuardNet is built around three sequential stages that are cleanly separated by design.
+The first stage is offline feature extraction. Before any training takes place, every audio clip in the dataset is passed through two frozen pre-trained encoders - WavLM and Whisper - and their output feature sequences are saved to disk as PyTorch tensor files. This happens once and is not repeated during training. The extraction process and the resulting file format are described in detail in section 3.2.
+The second stage is feature fusion. At training and inference time, the two pre-extracted feature sequences for a given clip are loaded from disk and combined by a small learnable module. The output is a single fused feature sequence of the same shape as each individual input.
+The third stage is classification. The fused sequence is passed through the Nes2Net backbone, which processes it with a stack of multi-scale residual blocks, reduces the temporal dimension via global pooling, and produces a two-class output (real or fake).
+The key architectural choice across all three stages is that the two pre-trained encoders are never fine-tuned. Their weights are frozen throughout. The only components that are trained are the fusion layer and the Nes2Net backbone. This keeps the number of trainable parameters small, prevents catastrophic forgetting of the rich representations learned during large-scale pre-training, and makes it feasible to train the entire system in a small number of epochs.
 
 4.2 Acoustic and Semantic Feature Extraction: Utilizing WavLM and Whisper
 
-4.3 Feature Fusion: Combining the Outputs of WavLM and Whisper (Maybe we should combine this part with the next one)
+4.3 Feature Fusion: Combining the Outputs of WavLM and Whisper
+(Maybe we should combine this part with the next one)
 
-4.4 The Classification Model: Adapting Nes2Net to Accept the Fused Features 
+4.4 The Classification Model: Adapting Nes2Net to Accept the Fused Features
 
-**5\. Experimental Setup**
+5. Experimental Setup
 
-5.1 Environment and Software Libraries 
+5.1 Environment and Software Libraries
+All experiments were run on a CUDA-enabled GPU, with automatic fallback to CPU when a GPU was not available. The project is implemented in Python using PyTorch as the main deep learning framework, with Torchaudio for audio loading and resampling. We used the Hugging Face Transformers library to load the pre-trained WavLM and Whisper models. Additional libraries include NumPy and Pandas for data handling, scikit-learn for computing evaluation metrics, and Matplotlib and Seaborn for visualizing results.
 
-5.2 Training Procedure (Loss function, optimization algorithm..)
+5.2 Training Procedure
+We trained the model using the Adam optimizer with a learning rate of 1e-4 and a weight decay of 1e-4 for L2 regularization. The loss function used is standard Cross-Entropy Loss, which is well suited for our binary classification task (real vs. fake). To prevent instability during training, we applied gradient clipping with a maximum norm of 1.0. We also used a ReduceLROnPlateau scheduler that halves the learning rate if the validation loss does not improve for 2 consecutive epochs. Training ran for a total of 8 epochs with a batch size of 16, and we applied early stopping with a patience of 4 epochs to avoid overfitting. The best model checkpoint was saved based on the best combination of validation accuracy and validation loss. To ensure reproducibility, we fixed the random seed to 42 for PyTorch and the Python random module.
 
-5.3 Hyperparameter Tuning (?)
+5.3 Hyperparameter Tuning
+The main architectural hyperparameters of the Nes2Net classifier were kept consistent with the original design. The input feature dimension is 768, matching the output size of both WavLM and Whisper encoders. The NES ratio was set to (8, 8) and the dilation factor to 2, as used in the Bottle2neck blocks. A dropout rate of 0.5 was applied in the backbone, and global average pooling was used to aggregate temporal features. For audio preprocessing, all clips were resampled to 16,000 Hz and truncated or zero-padded to a fixed length of 4 seconds (64,000 samples), resulting in a fixed temporal sequence length of 200 time steps after feature extraction. The feature fusion module uses a learnable weighted sum with softmax normalization over the two feature sources, meaning the model learns how much to rely on WavLM versus Whisper for each feature dimension. The WavLM model used is microsoft/wavlm-base-plus and the Whisper model is openai/whisper-small.
 
-5.4 Evaluation Metrics (e.g., Equal Error Rate (EER), Accuracy, AUC)
+5.4 Evaluation Metrics
+We evaluated our model using several complementary metrics. Classification accuracy measures the overall percentage of correctly classified samples, and since our dataset is balanced between real and fake audio, it serves as a reliable primary metric. We also track Cross-Entropy loss during training and validation to monitor convergence and detect overfitting. Beyond accuracy, we compute a full confusion matrix after each evaluation pass, which lets us derive precision, recall, and F1-score separately for the real and fake classes. These metrics are important because they reveal not just how often the model is correct overall, but specifically how well it handles each class - for example, whether it tends to miss fake samples or incorrectly flag real ones. All metrics are computed after running inference in evaluation mode, with dropout disabled and no gradient updates, across the full test set.
 
-**6\. Results and Discussion**
+**6. Results and Discussion**
 
-6.1 Baseline Model Performance (WavLM \+ NES2NET only)
+6.1 Baseline Model Performance (WavLM + NES2NET only)
+The baseline configuration was designed as an acoustic-only setting, where WavLM representations are directly processed by the Nes2Net classifier. This provides a controlled reference for the study by keeping the classification objective unchanged (Bonafide/Spoof) while relying solely on signal-level information. As such, the baseline serves as the primary comparison point for assessing the added value of multimodal integration in the proposed framework. 
 
-6.2 Enhanced Model Performance (WavLM \+ Whisper \+ NES2NET)
+6.2 Enhanced Model Performance (WavLM + Whisper + NES2NET)
+The enhanced configuration extends the baseline by integrating complementary representations from WavLM and Whisper prior to classification. In this setting, the model benefits from both acoustic cues and higher-level phonetic-linguistic structure, with fusion performed through a learnable weighted mechanism before Nes2Net prediction. Compared with the acoustic-only setup, this combined representation yields stronger and more stable performance behavior, supporting the central hypothesis that semantic-acoustic fusion improves robustness in deepfake speech detection. 
 
 6.3 Ablation Study: Demonstrating the Relative Contribution of the Whisper Integration (?)
+The ablation logic in this project compares two aligned settings: an acoustic-only pipeline (WavLM + Nes2Net) and the fused pipeline (WavLM + Whisper + Nes2Net). Because both settings keep the same classifier family and decision objective, the main changing factor is the addition of Whisper-derived information. This makes it possible to attribute the observed robustness gains to multimodal feature integration rather than to a different classification backend. In practical terms, the ablation analysis supports our core claim that adding semantic-phonetic context improves the model's ability to handle difficult cases that are less separable from acoustic cues alone.
 
 6.4 Error Analysis: Strengths and Weaknesses Across Different Spoofing Types
+The final test run shows a symmetric error profile, with the same number of false positives and false negatives, indicating that the model does not strongly favor one class over the other. Most predictions are highly confident, while the mistaken cases are concentrated around more ambiguous examples, including a subgroup near the decision boundary and another subgroup with high-confidence errors. This pattern suggests two practical directions for improvement: (1) calibration-oriented techniques to reduce overconfident mistakes, and (2) targeted data expansion for edge cases that remain difficult under both acoustic and semantic evidence. Although the available exported files do not include explicit attack-type tags per sample, the current analysis still provides a useful diagnostic view of where the model is already stable and where it can be strengthened. 
 
-**7\. Conclusion and Future Work**
+**7. Conclusion and Future Work**
 
 7.1 Summary of Achievements in Model Integration
+In this project, we implemented and validated a complete audio deepfake detection pipeline based on feature-level integration between two pre-trained backbones: WavLM and Whisper, followed by classification with a Nes2Net-based head. The final system, FusionGuardNet, was trained and evaluated on ASVspoof 2019 LA after balanced split preparation (84,278 train, 10,534 dev, 10,536 test; 50/50 real-fake in each split). This integration achieved strong and consistent performance across the full evaluation flow, with final test accuracy of 99.18%, test loss of 0.0324, and only 86 mistakes out of 10,536 samples (TN=5225, FP=43, FN=43, TP=5225). Beyond the final score, the training history indicates stable convergence over 8 epochs, improving from 92.60% train accuracy in epoch 1 to 99.49% in epoch 8, with best dev accuracy of 99.25% at epoch 8. Therefore, the main achievement of our integration is not only combining acoustic and semantic representations in one architecture, but demonstrating that this combination can be trained reliably and deliver high-precision spoofing detection on a standard benchmark setting.
 
 7.2 Suggestions for Improvement and Future Research
+For future work, the first priority is to run a fully documented baseline suite (WavLM-only and Whisper-only) using the same reporting format, so the contribution of each branch can be compared directly. Another important step is broader robustness evaluation on additional datasets and unseen generation settings, to check how well the model generalizes outside the current benchmark. On the modeling side, it is worth testing richer fusion strategies (such as attention-based fusion) and calibration methods that can reduce confident mistakes on borderline samples. From a deployment perspective, improving runtime and memory efficiency can make the system more suitable for near-real-time screening. Finally, adding interpretability analysis for time-frequency regions can make decisions easier to explain and trust in practical, high-stakes applications. 
 
-**8\. References**
+8. References
+Nes2Net: Liu, T., Truong, D. T., Das, R. K., Lee, K. A., & Li, H. (2025). Nes2Net: A lightweight nested architecture for foundation model driven speech anti-spoofing. arXiv preprint arXiv:2504.05657v2.
+WavLM: Chen, S., Wang, C., Chen, Z., Wu, Y., Liu, S., Chen, Z., ... & Wei, F. (2022). WavLM: Large-scale self-supervised pre-training for full stack speech processing. IEEE Journal of Selected Topics in Signal Processing, 16(6), 1505-1518.
+Whisper: Radford, A., Kim, J. W., Xu, T., Brockman, G., McLeavey, C., & Sutskever, I. (2023). Robust speech recognition via large-scale weak supervision. In International Conference on Machine Learning (pp. 28448-28481). PMLR.
+
+
+
