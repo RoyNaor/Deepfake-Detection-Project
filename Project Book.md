@@ -56,16 +56,8 @@ Our data organization pipeline reads the protocol files for all available ASVspo
 
 - **Dataset 1:** ASVspoof 2019 LA + ASVspoof5 2024
 - **Dataset 2:** ASVspoof 2019 LA + ASVspoof5 2024 + Fake-or-Real (for-norm)
-3.2 Audio Signal Preprocessing
-Before feature extraction, each audio clip goes through a sequence of normalization steps implemented in the feature extraction pipeline. 
-Channel reduction, If a recording contains more than one channel, the channels are averaged into a single mono waveform. All pre-trained models used in this project expect single-channel input. 
-Sample rate normalization, Every waveform is resampled to 16,000 Hz using torchaudio. This is the expected input rate for both WavLM and the Whisper encoder. 
-Fixed-length normalization, To ensure uniform input dimensions across all samples, each waveform is normalized to exactly 4 seconds (64,000 samples). Clips longer than 4 seconds are randomly cropped: a start offset is drawn uniformly at random from the valid range, and 64,000 consecutive samples are taken from that position. This random crop acts as a mild data augmentation. Clips shorter than 4 seconds are zero-padded at the end to reach the target length.
-Attention masking, For each clip, we record the ratio of real (non-padded) samples to the total length. This ratio is used to build a frame-level binary mask after feature extraction: frames corresponding to real audio are marked 1, frames corresponding to padding are marked 0. This mask is stored alongside the features and can be used by the classifier to avoid attending to padding artifacts.
-Offline feature extraction, Rather than extracting features on the fly during training, both the WavLM and Whisper representations are computed once for all clips and saved to disk as PyTorch tensor files (.pt). Each saved file contains the WavLM feature sequence, the Whisper encoder feature sequence (temporally aligned to WavLM), both masks, the integer label (0 for real, 1 for fake), and metadata (source path, split name, class name, sample rate, duration). This offline approach avoids redundant forward passes through the large pre-trained models during training and significantly reduces GPU memory pressure.
-Temporal alignment between models, WavLM and Whisper produce feature sequences of different temporal lengths for the same input. After extracting both, the Whisper sequence is aligned to the WavLM sequence length: if Whisper produces more frames than WavLM, it is truncated; if it produces fewer frames, it is zero-padded at the end. This alignment is necessary so that the two feature sequences can be processed together by the downstream classifier.
 
-3.3 Data Splitting
+3.2 Data Splitting
 After collecting all entries for a given configuration and matching each utterance ID against the available audio files, the merged pool is split into train, validation (dev), and test sets using an 80 / 10 / 10 ratio.
 Class balance is enforced at the split level. Real and fake entries are shuffled independently (using random seed 42 for reproducibility), and the same number of samples is drawn from each class for every split. This guarantees that no split is skewed toward either class, and that the evaluation metrics reflect genuine discriminative performance rather than class prior.
 The actual dataset sizes used in our experiments were as follows:
@@ -86,17 +78,42 @@ The pipeline also produces a protocol file and a summary file for each split, re
 **4. System Architecture and Proposed Methodology**
 4.1 End-to-End System Overview
 FusionGuardNet is built around three sequential stages that are cleanly separated by design.
-The first stage is offline feature extraction. Before any training takes place, every audio clip in the dataset is passed through two frozen pre-trained encoders - WavLM and Whisper - and their output feature sequences are saved to disk as PyTorch tensor files. This happens once and is not repeated during training. The extraction process and the resulting file format are described in detail in section 3.2.
-The second stage is feature fusion. At training and inference time, the two pre-extracted feature sequences for a given clip are loaded from disk and combined by a small learnable module. The output is a single fused feature sequence of the same shape as each individual input.
+The first stage is offline feature extraction. Before any training takes place, each audio clip is preprocessed and then passed through two frozen pre-trained encoders - WavLM and Whisper - and their output feature sequences are saved to disk as PyTorch tensor files. This happens once and is not repeated during training. The preprocessing steps and the extraction process are described in sections 4.2 and 4.3 respectively.
+The second stage is feature fusion. At training and inference time, the two pre-extracted feature sequences for a given clip are loaded from disk and combined by a small learnable module. The output is a single fused feature sequence of the same temporal shape as each individual input.
 The third stage is classification. The fused sequence is passed through the Nes2Net backbone, which processes it with a stack of multi-scale residual blocks, reduces the temporal dimension via global pooling, and produces a two-class output (real or fake).
 The key architectural choice across all three stages is that the two pre-trained encoders are never fine-tuned. Their weights are frozen throughout. The only components that are trained are the fusion layer and the Nes2Net backbone. This keeps the number of trainable parameters small, prevents catastrophic forgetting of the rich representations learned during large-scale pre-training, and makes it feasible to train the entire system in a small number of epochs.
 
-4.2 Acoustic and Semantic Feature Extraction: Utilizing WavLM and Whisper
+4.2 Audio Signal Preprocessing
+Before feature extraction, each audio clip goes through a sequence of normalization steps applied uniformly across all three source datasets.
 
-4.3 Feature Fusion: Combining the Outputs of WavLM and Whisper
-(Maybe we should combine this part with the next one)
+**Channel reduction.** If a recording contains more than one channel, the channels are averaged into a single mono waveform. All pre-trained models used in this project expect single-channel input.
 
-4.4 The Classification Model: Adapting Nes2Net to Accept the Fused Features
+**Sample rate normalization.** Every waveform is resampled to 16,000 Hz using torchaudio. This is the expected input rate for both WavLM and the Whisper encoder.
+
+**Fixed-length normalization.** To ensure uniform input dimensions across all samples, each waveform is normalized to exactly 4 seconds (64,000 samples). Clips longer than 4 seconds are randomly cropped: a start offset is drawn uniformly at random from the valid range, and 64,000 consecutive samples are taken from that position. This random crop acts as a mild data augmentation. Clips shorter than 4 seconds are zero-padded at the end to reach the target length.
+
+**Attention masking.** For each clip, we record the ratio of real (non-padded) samples to the total length. This ratio is used to build a frame-level binary mask after feature extraction: frames corresponding to real audio are marked 1, frames corresponding to padding are marked 0. This mask is stored alongside the features and can be passed to the classifier to prevent it from attending to padding artifacts.
+
+4.3 Acoustic and Semantic Feature Extraction: Utilizing WavLM and Whisper
+Rather than extracting features on the fly during training, both the WavLM and Whisper representations are computed once for all clips and saved to disk as PyTorch tensor files (.pt). Each saved file contains the WavLM feature sequence, the Whisper encoder feature sequence (temporally aligned to WavLM), both attention masks, the integer label (0 for real, 1 for fake), and metadata (source path, split name, class name, sample rate, duration). This offline approach avoids redundant forward passes through the large pre-trained models during training and significantly reduces GPU memory pressure.
+
+**WavLM extraction.** The preprocessed 16 kHz mono waveform is passed directly into the frozen WavLM encoder (microsoft/wavlm-base-plus). The model processes the raw waveform through its CNN feature extractor and Transformer stack, producing a sequence of 768-dimensional frame-level embeddings at a temporal resolution of one frame per 20 ms. For a 4-second clip this results in a sequence of 200 frames, which becomes the fixed temporal length used throughout the pipeline.
+
+**Whisper extraction.** The same waveform is first converted to an 80-band log-Mel spectrogram, which is the required input format for the Whisper encoder. The spectrogram is passed through the frozen Whisper encoder (openai/whisper-small); the decoder is not used. The encoder outputs a sequence of 768-dimensional contextual embeddings that reflect phonetic and prosodic structure rather than raw acoustic signal properties.
+
+**Temporal alignment.** WavLM and Whisper produce feature sequences of different temporal lengths for the same 4-second input. After extracting both, the Whisper sequence is aligned to the WavLM sequence length: if Whisper produces more frames it is truncated; if it produces fewer frames it is zero-padded at the end. This alignment ensures that the two sequences share a common time axis and can be combined frame-by-frame in the fusion stage.
+
+4.4 Feature Fusion: Combining the Outputs of WavLM and Whisper
+The fusion module takes the two temporally aligned feature sequences - each of shape T×768 - and combines them into a single sequence of the same shape, which is then passed to the classifier.
+
+The fusion is implemented as a learnable weighted sum. A vector of 768 scalar weights (one per feature dimension) is maintained for each of the two input sources. Before combining, these weights are passed through a softmax so they sum to 1 across the two sources at every feature dimension. The fused output at each time step is therefore a convex combination of the WavLM and Whisper embeddings, where the mixing proportion for each feature dimension is learned during training. This formulation is intentionally simple: it adds only 2×768 = 1,536 trainable parameters, imposes no structural assumptions about how the two representations should interact, and is fully interpretable - the learned weights reveal which model the classifier has come to rely on for each part of the feature space.
+
+4.5 The Classification Model: Adapting Nes2Net to Accept the Fused Features
+The fused T×768 sequence is passed to the Nes2Net backbone without any dimensionality reduction. Each Nes2Net block receives the full 768-dimensional representation and processes it through its nested Bottle2neck structure and SE module, progressively refining the representation while preserving both fine-grained and coarser-scale information across the temporal dimension.
+
+After the stack of Nes2Net blocks, a global average pooling operation collapses the temporal dimension T into a single 768-dimensional vector that summarizes the entire clip. This vector is then passed to a linear classification head that produces two logits, corresponding to the real and fake classes. During training, cross-entropy loss is applied to these logits. At inference time, the argmax of the logits determines the final prediction.
+
+The input dimension of 768 matches the output of both pre-trained encoders exactly, so no projection layer is needed between the fusion module and the classifier. The NES ratio is set to (8, 8) and the dilation factor to 2 within the Bottle2neck blocks, matching the configuration from the original Nes2Net paper. A dropout rate of 0.5 is applied within the backbone during training for regularization.
 
 5. Experimental Setup
 
