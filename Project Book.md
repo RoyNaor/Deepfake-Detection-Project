@@ -60,6 +60,7 @@ Our data organization pipeline reads the protocol files for all available ASVspo
 
 - **Dataset 1:** ASVspoof 2019 LA + ASVspoof5 2024
 - **Dataset 2:** ASVspoof 2019 LA + ASVspoof5 2024 + Fake-or-Real (for-norm)
+  
 3.2 Audio Signal Preprocessing
 Before feature extraction, each audio clip goes through a sequence of normalization steps implemented in the feature extraction pipeline. 
 Channel reduction, If a recording contains more than one channel, the channels are averaged into a single mono waveform. All pre-trained models used in this project expect single-channel input. 
