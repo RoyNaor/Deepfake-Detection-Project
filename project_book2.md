@@ -290,17 +290,17 @@ The input dimension of 768 matches the output of both pre-trained encoders exact
 
 ### 5.1 Environment and Software Libraries
 
-All experiments were run on a CUDA-enabled GPU, with automatic fallback to CPU when a GPU was not available.
+All experiments were run on a CUDA-enabled GPU, with automatic fallback to CPU when a GPU was unavailable.
 
 The project is implemented in Python using PyTorch as the main deep learning framework, with Torchaudio for audio loading and resampling. We used the Hugging Face Transformers library to load the pre-trained WavLM and Whisper models.
 
-Additional libraries include NumPy and Pandas for data handling, scikit-learn for computing evaluation metrics, and Matplotlib and Seaborn for visualizing results.
+Additional libraries include NumPy and Pandas for data handling, scikit-learn for evaluation metrics, and Matplotlib and Seaborn for result visualization.
 
 ### 5.2 Training Procedure
 
 We trained the model using the Adam optimizer with a learning rate of **1e-4** and a weight decay of **1e-4** for L2 regularization. The loss function used is standard Cross-Entropy Loss, which is well suited for our binary classification task: real versus fake.
 
-To prevent instability during training, we applied gradient clipping with a maximum norm of **1.0**. We also used a ReduceLROnPlateau scheduler that halves the learning rate if the validation loss does not improve for **2 consecutive epochs**.
+To improve training stability, we applied gradient clipping with a maximum norm of **1.0**. We also used a ReduceLROnPlateau scheduler that halves the learning rate when validation loss does not improve for **2 consecutive epochs**.
 
 Training ran for a total of **8 epochs** with a batch size of **16**, and we applied early stopping with a patience of **4 epochs** to avoid overfitting. The best model checkpoint was saved based on the best combination of validation accuracy and validation loss.
 
@@ -325,7 +325,7 @@ The main architectural hyperparameters of the Nes2Net classifier were kept consi
 | WavLM model | microsoft/wavlm-base-plus |
 | Whisper model | openai/whisper-small |
 
-The feature fusion module uses a learnable weighted sum with softmax normalization over the two feature sources. This means the model learns how much to rely on WavLM versus Whisper for each feature dimension.
+The fusion module uses a learnable weighted sum with softmax normalization over the two feature sources, allowing the model to learn how much to rely on WavLM versus Whisper at each feature dimension.
 
 ### 5.4 Evaluation Metrics
 
