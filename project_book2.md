@@ -183,7 +183,7 @@ The pipeline also produces a protocol file and a summary file for each split, re
 
 ### 4.1 End-to-End System Overview
 
-FusionGuardNet is built around three sequential stages that are cleanly separated by design.
+FusionGuardNet follows a three-stage pipeline with clear stage separation.
 
 | Stage | Description | Output |
 |---|---|---|
@@ -201,18 +201,18 @@ The key architectural choice across all three stages is that the two pre-trained
 
 ### 4.2 Audio Signal Preprocessing
 
-Before feature extraction, each audio clip goes through a sequence of normalization steps applied uniformly across all source datasets.
+Before feature extraction, each audio clip goes through the same normalization pipeline, applied uniformly across all source datasets.
 
 | Step | Description |
 |---|---|
 | Channel reduction | Multi-channel recordings are averaged into a single mono waveform. |
 | Sample rate normalization | Every waveform is resampled to 16,000 Hz using Torchaudio. |
 | Fixed-length normalization | Each waveform is normalized to exactly 4 seconds, equal to 64,000 samples. |
-| Attention masking | A frame-level binary mask marks real audio as 1 and padding as 0. |
+| Padding-validity mask | A frame-level binary mask marks real audio frames as 1 and padded frames as 0. |
 
 #### Channel reduction
 
-If a recording contains more than one channel, the channels are averaged into a single mono waveform. All pre-trained models used in this project expect single-channel input.
+If a recording contains more than one channel, the channels are averaged into a single mono waveform. This matches the expected single-channel input format of the pre-trained encoders used in this project.
 
 #### Sample rate normalization
 
@@ -220,27 +220,27 @@ Every waveform is resampled to **16,000 Hz** using Torchaudio. This is the expec
 
 #### Fixed-length normalization
 
-To ensure uniform input dimensions across all samples, each waveform is normalized to exactly **4 seconds**, or **64,000 samples**.
+To ensure consistent input dimensions across all samples, each waveform is normalized to exactly **4 seconds** (**64,000 samples**).
 
 Clips longer than 4 seconds are randomly cropped. A start offset is drawn uniformly at random from the valid range, and 64,000 consecutive samples are taken from that position. This random crop acts as a mild data augmentation. Clips shorter than 4 seconds are zero-padded at the end to reach the target length.
 
-#### Attention masking
+#### Padding-validity masking
 
-For each clip, we record the ratio of real, non-padded samples to the total length. This ratio is used to build a frame-level binary mask after feature extraction. Frames corresponding to real audio are marked **1**, while frames corresponding to padding are marked **0**. This mask is stored alongside the features and can be passed to the classifier to prevent it from attending to padding artifacts.
+For each clip, we record the ratio of real (non-padded) samples to total length. This ratio is used to build a frame-level binary mask after feature extraction. Frames corresponding to real audio are marked **1**, while frames corresponding to padding are marked **0**. The mask is stored alongside the features and can be passed to the classifier to reduce attention to padding artifacts.
 
 ### 4.3 Acoustic and Semantic Feature Extraction: WavLM and Whisper
 
-Rather than extracting features on the fly during training, both WavLM and Whisper representations are computed once for all clips and saved to disk as PyTorch tensor files (`.pt`).
+Rather than extracting features on the fly during training, both WavLM and Whisper representations are computed once for all clips and saved as PyTorch tensor files (`.pt`).
 
 Each saved file contains:
 
 - WavLM feature sequence
 - Whisper encoder feature sequence, temporally aligned to WavLM
-- WavLM and Whisper attention masks
+- WavLM and Whisper padding-validity masks
 - Integer label: `0` for real, `1` for fake
-- Metadata: source path, split name, class name, sample rate, and duration
+- Metadata (when enabled in the extraction script): source path, split name, class name, sample rate, and duration
 
-This offline approach avoids redundant forward passes through the large pre-trained models during training and significantly reduces GPU memory pressure.
+This offline approach avoids redundant forward passes through large pre-trained models during training and significantly reduces GPU memory pressure.
 
 #### WavLM extraction
 
@@ -250,7 +250,7 @@ For a 4-second clip, this results in a sequence of **200 frames**, which becomes
 
 #### Whisper extraction
 
-The same waveform is first converted to an **80-band log-Mel spectrogram**, which is the required input format for the Whisper encoder. The spectrogram is passed through the frozen Whisper encoder, **openai/whisper-small**. The decoder is not used.
+The same waveform is first converted to an **80-band log-Mel spectrogram**, the required input format for the Whisper encoder. The spectrogram is passed through the frozen Whisper encoder, **openai/whisper-small**. The decoder is not used.
 
 The encoder outputs a sequence of **768-dimensional** contextual embeddings that reflect phonetic and prosodic structure rather than raw acoustic signal properties.
 
@@ -262,11 +262,11 @@ This alignment ensures that the two sequences share a common time axis and can b
 
 ### 4.4 Feature Fusion: Combining WavLM and Whisper
 
-The fusion module takes the two temporally aligned feature sequences, each of shape **T × 768**, and combines them into a single sequence of the same shape. This fused representation is then passed to the classifier.
+The fusion module takes two temporally aligned feature sequences, each of shape **T × 768**, and combines them into a single sequence of the same shape. This fused representation is then passed to the classifier.
 
 The fusion is implemented as a **learnable weighted sum**. A vector of **768 scalar weights** is maintained for each of the two input sources. Before combining, these weights are passed through a softmax so they sum to 1 across the two sources at every feature dimension.
 
-The fused output at each time step is therefore a convex combination of the WavLM and Whisper embeddings, where the mixing proportion for each feature dimension is learned during training.
+At each time step, the fused output is a convex combination of the WavLM and Whisper embeddings, where the mixing proportion for each feature dimension is learned during training.
 
 This formulation is intentionally simple:
 
@@ -276,9 +276,9 @@ This formulation is intentionally simple:
 
 ### 4.5 Classification Model: Adapting Nes2Net to the Fused Features
 
-The fused **T × 768** sequence is passed to the Nes2Net backbone without any dimensionality reduction. Each Nes2Net block receives the full 768-dimensional representation and processes it through its nested Bottle2neck structure and SE module. This progressively refines the representation while preserving both fine-grained and coarser-scale information across the temporal dimension.
+The fused **T × 768** sequence is passed to the Nes2Net backbone without dimensionality reduction. Each Nes2Net block receives the full 768-dimensional representation and processes it through its nested Bottle2neck structure and SE module. This progressively refines the representation while preserving both fine-grained and coarser-scale information across the temporal dimension.
 
-After the stack of Nes2Net blocks, a global average pooling operation collapses the temporal dimension **T** into a single **768-dimensional** vector that summarizes the entire clip. This vector is then passed to a linear classification head that produces two logits, corresponding to the real and fake classes.
+After the stack of Nes2Net blocks, global average pooling collapses the temporal dimension **T** into a single **768-dimensional** vector that summarizes the clip. This vector is then passed to a linear classification head that produces two logits, corresponding to the real and fake classes.
 
 During training, cross-entropy loss is applied to these logits. At inference time, the argmax of the logits determines the final prediction.
 
