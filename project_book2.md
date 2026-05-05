@@ -341,7 +341,7 @@ We evaluated the model using several complementary metrics.
 | F1-score | Harmonic mean of precision and recall. |
 | Equal Error Rate (EER) | Measures the point where false acceptance and false rejection rates are equal. |
 
-Since the dataset is balanced between real and fake audio, accuracy serves as a reliable primary metric. However, accuracy alone is not enough. The confusion matrix, precision, recall, and F1-score reveal whether the model tends to miss fake samples or incorrectly flag real ones.
+Because Dataset 1 is perfectly balanced and Dataset 2 is near-balanced (with a very small class skew), accuracy serves as a reliable primary metric in both experiments. However, accuracy alone is not sufficient. The confusion matrix, precision, recall, and F1-score reveal whether the model tends to miss fake samples or incorrectly flag real ones.
 
 All metrics are computed after running inference in evaluation mode, with dropout disabled and no gradient updates, across the full test set.
 
@@ -378,10 +378,9 @@ In practical terms, the ablation analysis supports our core claim that adding se
 
 ### 6.4 Error Analysis: Strengths and Weaknesses Across Spoofing Types
 
-The final test run shows a symmetric error profile, with the same number of false positives and false negatives. This indicates that the model does not strongly favor one class over the other and that its decision threshold behaves in a balanced way on the evaluated split.
+In Dataset 1, the final test run shows a symmetric error profile, with the same number of false positives and false negatives. In Dataset 2, the profile is slightly asymmetric (FP=77, FN=38), but still strongly balanced relative to the dataset size. Together, these outcomes indicate that the model does not strongly favor one class over the other across either experimental configuration.
 
-Most predictions are highly confident, while the mistaken cases are concentrated around more ambiguous examples, including a subgroup near the decision boundary and another subgroup with high-confidence errors. This suggests that some errors come from genuinely borderline samples, while others likely reflect hard artifacts that still confuse both feature branches.
-
+Across both experiments, most predictions are highly confident, while the mistaken cases are concentrated around more ambiguous examples, including a subgroup near the decision boundary and another subgroup with high-confidence errors. This suggests that some errors come from genuinely borderline samples, while others likely reflect hard artifacts that still confuse both feature branches.
 
 This pattern suggests two practical directions for improvement:
 
@@ -432,3 +431,9 @@ Finally, adding interpretability analysis for time-frequency regions can make de
 2. Chen, S., Wang, C., Chen, Z., Wu, Y., Liu, S., Chen, Z., ... & Wei, F. (2022). *WavLM: Large-scale self-supervised pre-training for full stack speech processing*. IEEE Journal of Selected Topics in Signal Processing, 16(6), 1505–1518.
 
 3. Radford, A., Kim, J. W., Xu, T., Brockman, G., McLeavey, C., & Sutskever, I. (2023). *Robust speech recognition via large-scale weak supervision*. In International Conference on Machine Learning (pp. 28448–28481). PMLR.
+
+4. Kinnunen, T., Yamagishi, J., Todisco, M., Delgado, H., Sahidullah, M., Wang, W., Evans, N., & Lee, K. A. (2019). *ASVspoof 2019: Future horizons in spoofed and fake audio detection*. In Proc. Interspeech 2019 (pp. 1008–1012).
+
+5. Wang, X., Tak, H., Patino, J., Todisco, M., Nautsch, A., Yamagishi, J., & Evans, N. (2024). *ASVspoof 5: Crowdsourced data, deepfakes, and adversarial attacks at scale*. arXiv preprint arXiv:2408.08703.
+
+6. Kaggle. (n.d.). *Fake or real audio dataset*. https://www.kaggle.com/datasets/mohammedabdeldayem/the-fake-or-real-dataset
