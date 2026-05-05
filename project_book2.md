@@ -396,38 +396,32 @@ Although the available exported files do not include explicit attack-type tags p
 
 ### 7.1 Summary of Achievements in Model Integration
 
-In this project, we implemented and validated a complete audio deepfake detection pipeline based on feature-level integration between two pre-trained backbones: WavLM and Whisper, followed by classification with a Nes2Net-based head.
+In this project, we implemented and validated a complete audio deepfake detection pipeline based on feature-level integration between two pre-trained backbones, WavLM and Whisper, followed by classification with a Nes2Net-based head. This end-to-end design keeps representation learning and final decision-making tightly coordinated in one workflow while keeping the frozen encoder strategy unchanged across experiments.
 
-The final system, FusionGuardNet, was trained and evaluated on ASVspoof 2019 LA after balanced split preparation: **84,278 train samples**, **10,534 dev samples**, and **10,536 test samples**, with a 50/50 real-fake balance in each split.
+To evaluate the approach fairly, we ran two full experiments that match the two dataset configurations defined earlier in the project:
 
-This integration achieved strong and consistent performance across the full evaluation flow:
+| Experiment | Dataset configuration | Key test outcome |
+|---|---|---|
+| Dataset 1 | ASVspoof 2019 LA + ASVspoof5 2024 | 99.18% accuracy on 10,536 test samples |
+| Dataset 2 | ASVspoof 2019 LA + ASVspoof5 2024 + Fake-or-Real (for-norm) | 99.34% accuracy and 0.60% EER on 17,467 test samples |
 
-| Metric | Value |
-|---|---:|
-| Test accuracy | 99.18% |
-| Test loss | 0.0324 |
-| Total test samples | 10,536 |
-| Total mistakes | 86 |
-| True negatives (TN) | 5,225 |
-| False positives (FP) | 43 |
-| False negatives (FN) | 43 |
-| True positives (TP) | 5,225 |
+In **Dataset 1**, FusionGuardNet was trained and evaluated after balanced split preparation (**84,278 train**, **10,534 dev**, **10,536 test**), with a near-symmetric error profile and only **86 total mistakes** (**TN=5,225, FP=43, FN=43, TP=5,225**). The training history also showed stable convergence over 8 epochs, rising from **92.60%** train accuracy in epoch 1 to **99.49%** in epoch 8, with best dev accuracy of **99.25%**.
 
-Beyond the final score, the training history indicates stable convergence over 8 epochs, improving from **92.60% train accuracy** in epoch 1 to **99.49%** in epoch 8, with the best dev accuracy of **99.25%** at epoch 8.
+In **Dataset 2**, which adds the Fake-or-Real (for-norm) subset and therefore increases diversity and scale, the same architecture maintained strong performance on a larger test set (**17,467 samples**). The model reached **99.34% test accuracy**, **0.60% EER**, and confusion-matrix counts of **TN=8,652, FP=77, FN=38, TP=8,700**, indicating that the integration remains robust under broader and more modern spoofing conditions.
 
-Therefore, the main achievement of our integration is not only combining acoustic and semantic representations in one architecture, but also demonstrating that this combination can be trained reliably and deliver high-precision spoofing detection on a standard benchmark setting.
+Taken together, these two experiments show that the main achievement is not only combining acoustic and semantic representations in one architecture, but demonstrating that this combination trains reliably and scales well from the first configuration to the larger mixed-source configuration.
 
 ### 7.2 Suggestions for Improvement and Future Research
 
-For future work, the first priority is to run a fully documented baseline suite using the same reporting format. This should include both **WavLM-only** and **Whisper-only** settings, so the contribution of each branch can be compared directly.
+For future work, the first priority is to run a fully documented baseline suite using the same reporting format. This should include both **WavLM-only** and **Whisper-only** settings, so the contribution of each branch can be compared directly. A consistent baseline package will make future comparisons clearer and strengthen the reproducibility of conclusions.
 
-Another important step is broader robustness evaluation on additional datasets and unseen generation settings, to check how well the model generalizes outside the current benchmark.
+Another important step is broader robustness evaluation on additional datasets and unseen generation settings, to check how well the model generalizes outside the current benchmark. This is especially important for understanding whether performance remains stable under distribution shifts and new synthesis artifacts.
 
-On the modeling side, it is worth testing richer fusion strategies, such as attention-based fusion, and calibration methods that can reduce confident mistakes on borderline samples.
+On the modeling side, it is worth testing richer fusion strategies, such as attention-based fusion, and calibration methods that can reduce confident mistakes on borderline samples. These extensions could improve both detection reliability and confidence quality in challenging decision regions.
 
-From a deployment perspective, improving runtime and memory efficiency can make the system more suitable for near-real-time screening.
+From a deployment perspective, improving runtime and memory efficiency can make the system more suitable for near-real-time screening. Lightweight inference behavior is likely to be a key requirement for practical integration into monitoring pipelines.
 
-Finally, adding interpretability analysis for time-frequency regions can make decisions easier to explain and trust in practical, high-stakes applications.
+Finally, adding interpretability analysis for time-frequency regions can make decisions easier to explain and trust in practical, high-stakes applications. Better interpretability would also help researchers diagnose remaining failure modes and guide targeted data or architecture improvements.
 
 ---
 
