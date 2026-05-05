@@ -353,15 +353,15 @@ All metrics are computed after running inference in evaluation mode, with dropou
 
 The baseline configuration was designed as an acoustic-only setting, where WavLM representations are directly processed by the Nes2Net classifier.
 
-This provides a controlled reference for the study by keeping the classification objective unchanged, while relying solely on signal-level information. As such, the baseline serves as the primary comparison point for assessing the added value of multimodal integration in the proposed framework.
+This provides a controlled reference for the study by keeping the classification objective unchanged, while relying solely on signal-level information. As such, the baseline serves as the primary comparison point for assessing the added value of multimodal integration in the proposed framework, especially when discussing stability and generalization trends.
 
 ### 6.2 Enhanced Model Performance: WavLM + Whisper + Nes2Net
 
-The enhanced configuration extends the baseline by integrating complementary representations from WavLM and Whisper prior to classification.
+The enhanced configuration extends the baseline by integrating complementary representations from WavLM and Whisper prior to classification. By combining these sources at feature level, the model can jointly consider low-level acoustic signatures and higher-level linguistic patterns.
 
-In this setting, the model benefits from both acoustic cues and higher-level phonetic-linguistic structure, with fusion performed through a learnable weighted mechanism before Nes2Net prediction.
+In this setting, the model benefits from both acoustic cues and higher-level phonetic-linguistic structure, with fusion performed through a learnable weighted mechanism before Nes2Net prediction. The adaptive weighting allows the network to emphasize whichever representation is more informative for each input condition.
 
-Compared with the acoustic-only setup, this combined representation yields stronger and more stable performance behavior, supporting the central hypothesis that semantic-acoustic fusion improves robustness in deepfake speech detection.
+Compared with the acoustic-only setup, this combined representation yields stronger and more stable performance behavior, supporting the central hypothesis that semantic-acoustic fusion improves robustness in deepfake speech detection. The observed behavior is consistent with the design goal of reducing dependence on any single cue family.
 
 ### 6.3 Ablation Study: Relative Contribution of Whisper Integration
 
@@ -372,15 +372,16 @@ The ablation logic in this project compares two aligned settings:
 | Baseline | WavLM only | Nes2Net |
 | Proposed model | WavLM + Whisper | Nes2Net |
 
-Because both settings keep the same classifier family and decision objective, the main changing factor is the addition of Whisper-derived information. This makes it possible to attribute the observed robustness gains to multimodal feature integration rather than to a different classification backend.
+Because both settings keep the same classifier family and decision objective, the main changing factor is the addition of Whisper-derived information. This makes it possible to attribute the observed robustness gains to multimodal feature integration rather than to a different classification backend, which keeps the comparison methodologically clean.
 
-In practical terms, the ablation analysis supports our core claim that adding semantic-phonetic context improves the model's ability to handle difficult cases that are less separable from acoustic cues alone.
+In practical terms, the ablation analysis supports our core claim that adding semantic-phonetic context improves the model's ability to handle difficult cases that are less separable from acoustic cues alone. It also clarifies that the improvement is not merely a byproduct of model size, since the classification head remains conceptually consistent.
 
 ### 6.4 Error Analysis: Strengths and Weaknesses Across Spoofing Types
 
-The final test run shows a symmetric error profile, with the same number of false positives and false negatives. This indicates that the model does not strongly favor one class over the other.
+The final test run shows a symmetric error profile, with the same number of false positives and false negatives. This indicates that the model does not strongly favor one class over the other and that its decision threshold behaves in a balanced way on the evaluated split.
 
-Most predictions are highly confident, while the mistaken cases are concentrated around more ambiguous examples, including a subgroup near the decision boundary and another subgroup with high-confidence errors.
+Most predictions are highly confident, while the mistaken cases are concentrated around more ambiguous examples, including a subgroup near the decision boundary and another subgroup with high-confidence errors. This suggests that some errors come from genuinely borderline samples, while others likely reflect hard artifacts that still confuse both feature branches.
+
 
 This pattern suggests two practical directions for improvement:
 
