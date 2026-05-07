@@ -26,7 +26,7 @@ A key design decision in this project is the use of **offline feature extraction
 
 Beyond using a single pre-trained model, a central goal was to explore whether combining two models with different strengths could improve detection further. Different types of synthesis errors leave different traces in the audio: some are more signal-level, while others relate to how speech is structured at a phonetic or rhythmic level. By giving the classifier a richer, multi-perspective view of the input, we aimed to improve both accuracy and robustness.
 
-The end result is a complete, working detection pipeline that we train and evaluate on two standard benchmarks: **ASVspoof 2019 LA** and **ASVspoof5 (2024)**. We then compare the proposed approach against single-encoder baselines.
+The end result is a complete, working detection pipeline that we train and evaluate across two dataset configurations. The first configuration combines two standard benchmarks: **ASVspoof 2019 LA** and **ASVspoof5 (2024)**. The second configuration extends this with a third dataset, **Fake-or-Real (for-norm)**, adding additional diversity in recording conditions and synthesis methods not present in the ASVspoof corpora. We then compare the proposed approach against single-encoder baselines.
 
 ### 1.3 Our Contribution: Integrating Whisper with WavLM in the Nes2Net Architecture
 
@@ -40,7 +40,7 @@ The motivation behind this design is that synthetic speech can fail in more than
 
 A further architectural choice is that the two pre-trained encoders are kept fully frozen throughout training. Only the fusion layer and the Nes2Net backbone are updated. This keeps the trainable parameter count small, prevents catastrophic forgetting of the rich representations learned during large-scale pre-training, and makes the full system practical to train in a small number of epochs on a single GPU.
 
-We evaluate FusionGuardNet across two dataset configurations. On the **ASVspoof 2019 LA** dataset, containing 10,536 balanced test samples, the model achieves **99.18% test accuracy**, with a test loss of **0.0324** and only **86 misclassifications**. The error profile is perfectly symmetric, with equal false positive and false negative rates:
+We evaluate FusionGuardNet across two dataset configurations. On **Dataset 1** (**ASVspoof 2019 LA** + **ASVspoof5 2024**), containing 10,536 balanced test samples, the model achieves **99.18% test accuracy**, with a test loss of **0.0324** and only **86 misclassifications**. The error profile is perfectly symmetric, with equal false positive and false negative rates:
 
 | Metric | Value |
 |---|---:|
@@ -53,7 +53,7 @@ We evaluate FusionGuardNet across two dataset configurations. On the **ASVspoof 
 | False negatives (FN) | 43 |
 | True positives (TP) | 5,225 |
 
-On a broader evaluation combining **ASVspoof 2019 LA** with **ASVspoof5 (2024)** data, containing 17,467 test samples, FusionGuardNet achieves **99.34% test accuracy** with an **Equal Error Rate (EER) of 0.60%**, demonstrating that the performance gains hold across a more diverse and modern set of spoofing conditions.
+On **Dataset 2** (**ASVspoof 2019 LA** + **ASVspoof5 2024** + **Fake-or-Real for-norm**), containing 17,467 test samples, FusionGuardNet achieves **99.34% test accuracy** with an **Equal Error Rate (EER) of 0.60%**, demonstrating that the performance gains hold across a more diverse and modern set of spoofing conditions.
 
 Both configurations outperform single-encoder baselines, confirming that the dual-representation fusion provides measurable added value beyond what either model achieves alone.
 
