@@ -399,10 +399,17 @@ In this project, we implemented and validated a complete audio deepfake detectio
 
 To evaluate the approach fairly, we ran two full experiments that match the two dataset configurations defined earlier in the project:
 
-| Experiment | Dataset configuration | Key test outcome |
-|---|---|---|
-| Dataset 1 | ASVspoof 2019 LA + ASVspoof5 2024 | 99.18% accuracy on 10,536 test samples |
-| Dataset 2 | ASVspoof 2019 LA + ASVspoof5 2024 + Fake-or-Real (for-norm) | 99.34% accuracy and 0.60% EER on 17,467 test samples |
+| Experiment | Accuracy | Precision | Recall | F1-score | EER |
+|---|---:|---:|---:|---:|---:|
+| Dataset 1 | 99.18% | 99.18% | 99.18% | 99.18% | N/A |
+| Dataset 2 | 99.34% | 99.12% | 99.57% | 99.35% | 0.60% |
+
+| Experiment | Dataset configuration | Test samples |
+|---|---|---:|
+| Dataset 1 | ASVspoof 2019 LA + ASVspoof5 2024 | 10,536 |
+| Dataset 2 | ASVspoof 2019 LA + ASVspoof5 2024 + Fake-or-Real (for-norm) | 17,467 |
+
+Reference for dataset definitions: see Section **3.2 Dataset Configurations** in this document, where Dataset 1 and Dataset 2 are formally defined by included source datasets.
 
 In **Dataset 1**, FusionGuardNet was trained and evaluated after balanced split preparation (**84,278 train**, **10,534 dev**, **10,536 test**), with a near-symmetric error profile and only **86 total mistakes** (**TN=5,225, FP=43, FN=43, TP=5,225**). The training history also showed stable convergence over 8 epochs, rising from **92.60%** train accuracy in epoch 1 to **99.49%** in epoch 8, with best dev accuracy of **99.25%**.
 
