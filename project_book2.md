@@ -361,6 +361,24 @@ The enhanced configuration extends the baseline by integrating complementary rep
 
 In this setting, the model benefits from both acoustic cues and higher-level phonetic-linguistic structure, with fusion performed through a learnable weighted mechanism before Nes2Net prediction. The adaptive weighting allows the network to emphasize whichever representation is more informative for each input condition.
 
+The main quantitative results are summarized below.
+
+| Experiment | Accuracy | Precision | Recall | F1-score | EER |
+|---|---:|---:|---:|---:|---:|
+| Dataset 1 | 99.18% | 99.18% | 99.18% | 99.18% | N/A |
+| Dataset 2 | 99.34% | 99.12% | 99.57% | 99.35% | 0.60% |
+
+| Experiment | Dataset configuration | Test samples |
+|---|---|---:|
+| Dataset 1 | ASVspoof 2019 LA + ASVspoof5 2024 | 10,536 |
+| Dataset 2 | ASVspoof 2019 LA + ASVspoof5 2024 + Fake-or-Real (for-norm) | 17,467 |
+
+Reference for dataset definitions: see Section **3.2 Dataset Configurations** in this document, where Dataset 1 and Dataset 2 are formally defined by included source datasets.
+
+For **Dataset 1**, FusionGuardNet was trained and evaluated after balanced split preparation (**84,278 train**, **10,534 dev**, **10,536 test**), with a near-symmetric error profile and only **86 total mistakes** (**TN=5,225, FP=43, FN=43, TP=5,225**). The training history showed stable convergence over 8 epochs, rising from **92.60%** train accuracy in epoch 1 to **99.49%** in epoch 8, with best dev accuracy of **99.25%**.
+
+For **Dataset 2**, which adds the Fake-or-Real (for-norm) subset and therefore increases diversity and scale, the same architecture maintained strong performance on a larger test set (**17,467 samples**). The model reached **99.34% test accuracy**, **0.60% EER**, and confusion-matrix counts of **TN=8,652, FP=77, FN=38, TP=8,700**, indicating that the integration remains robust under broader and more modern spoofing conditions
+
 Compared with the acoustic-only setup, this combined representation yields stronger and more stable performance behavior, supporting the central hypothesis that semantic-acoustic fusion improves robustness in deepfake speech detection. The observed behavior is consistent with the design goal of reducing dependence on any single cue family.
 
 ### 6.3 Ablation Study: Relative Contribution of Whisper Integration
@@ -397,25 +415,9 @@ Although the available exported files do not include explicit attack-type tags p
 
 In this project, we implemented and validated a complete audio deepfake detection pipeline based on feature-level integration between two pre-trained backbones, WavLM and Whisper, followed by classification with a Nes2Net-based head. This end-to-end design keeps representation learning and final decision-making tightly coordinated in one workflow while keeping the frozen encoder strategy unchanged across experiments.
 
-To evaluate the approach fairly, we ran two full experiments that match the two dataset configurations defined earlier in the project:
+The detailed quantitative outcomes and their interpretation are reported in **Section 6 (Results and Discussion)**, in line with the standard structure where experimental findings are presented before the concluding chapter.
 
-| Experiment | Accuracy | Precision | Recall | F1-score | EER |
-|---|---:|---:|---:|---:|---:|
-| Dataset 1 | 99.18% | 99.18% | 99.18% | 99.18% | N/A |
-| Dataset 2 | 99.34% | 99.12% | 99.57% | 99.35% | 0.60% |
-
-| Experiment | Dataset configuration | Test samples |
-|---|---|---:|
-| Dataset 1 | ASVspoof 2019 LA + ASVspoof5 2024 | 10,536 |
-| Dataset 2 | ASVspoof 2019 LA + ASVspoof5 2024 + Fake-or-Real (for-norm) | 17,467 |
-
-Reference for dataset definitions: see Section **3.2 Dataset Configurations** in this document, where Dataset 1 and Dataset 2 are formally defined by included source datasets.
-
-In **Dataset 1**, FusionGuardNet was trained and evaluated after balanced split preparation (**84,278 train**, **10,534 dev**, **10,536 test**), with a near-symmetric error profile and only **86 total mistakes** (**TN=5,225, FP=43, FN=43, TP=5,225**). The training history also showed stable convergence over 8 epochs, rising from **92.60%** train accuracy in epoch 1 to **99.49%** in epoch 8, with best dev accuracy of **99.25%**.
-
-In **Dataset 2**, which adds the Fake-or-Real (for-norm) subset and therefore increases diversity and scale, the same architecture maintained strong performance on a larger test set (**17,467 samples**). The model reached **99.34% test accuracy**, **0.60% EER**, and confusion-matrix counts of **TN=8,652, FP=77, FN=38, TP=8,700**, indicating that the integration remains robust under broader and more modern spoofing conditions.
-
-Taken together, these two experiments show that the main achievement is not only combining acoustic and semantic representations in one architecture, but demonstrating that this combination trains reliably and scales well from the first configuration to the larger mixed-source configuration.
+Taken together, the experiments show that the main achievement is not only combining acoustic and semantic representations in one architecture, but demonstrating that this combination trains reliably and scales well from the first configuration to the larger mixed-source configuration.
 
 ### 7.2 Suggestions for Improvement and Future Research
 
