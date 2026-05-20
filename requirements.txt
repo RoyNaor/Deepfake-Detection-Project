@@ -15,3 +15,6 @@ tqdm
 matplotlib
 seaborn
 jupyter
+
+# Research / Paper Search
+scholarly  # optional: pip install scholarly (Google Scholar scraper)
