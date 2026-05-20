@@ -4,23 +4,23 @@
 
 ### 1.1 Challenges in Audio-Based Deepfake Detection
 
-Recent advances in generative AI have made it significantly easier to produce synthetic speech that sounds indistinguishable from a real human voice. Modern text-to-speech (TTS) and voice conversion (VC) systems can now generate highly convincing audio with minimal input, enabling an attacker to clone a speaker's voice from only a short recording.
+Recent advances in generative AI have made it significantly easier to produce synthetic speech that sounds indistinguishable from a real human voice [7, 8]. Modern text-to-speech (TTS) and voice conversion (VC) systems can now generate highly convincing audio with minimal input, enabling an attacker to clone a speaker's voice from only a short recording [9, 10].
 
-These audio deepfakes pose a growing security threat. They can be used to bypass voice authentication systems, impersonate individuals in phone calls, manipulate financial transactions through social engineering, or spread disinformation through fabricated recordings. High-profile cases of voice-cloned fraud and AI-generated audio content shared on social media have already demonstrated the real-world impact of this technology, and as synthesis tools become more accessible, the scale of the threat is expected to grow.
+These audio deepfakes pose a growing security threat. They can be used to bypass voice authentication systems, impersonate individuals in phone calls, manipulate financial transactions through social engineering, or spread disinformation through fabricated recordings [9, 10]. High-profile cases of voice-cloned fraud and AI-generated audio content shared on social media have already demonstrated the real-world impact of this technology [11], and as synthesis tools become more accessible, the scale of the threat is expected to grow [8].
 
-The research community has responded to this challenge through the ASVspoof challenge series, which has run since 2015 and provides standardized benchmarks and evaluation protocols for anti-spoofing systems. Each edition introduces newer and more sophisticated spoofing systems, reflecting the ongoing arms race between generation and detection.
+The research community has responded to this challenge through the ASVspoof challenge series, which has run since 2015 and provides standardized benchmarks and evaluation protocols for anti-spoofing systems [4, 5]. Each edition introduces newer and more sophisticated spoofing systems, reflecting the ongoing arms race between generation and detection [8].
 
-Building an effective detector is not straightforward. Classical approaches relied on handcrafted audio features designed for tasks like speech recognition, and they tend to miss the subtle artifacts that modern synthesis methods introduce. A deeper issue is generalization: a model trained to detect one type of fake audio may fail entirely when faced with a different synthesis method it has not seen before.
+Building an effective detector is not straightforward. Classical approaches relied on handcrafted audio features designed for tasks like speech recognition, and they tend to miss the subtle artifacts that modern synthesis methods introduce [12, 13]. A deeper issue is generalization: a model trained to detect one type of fake audio may fail entirely when faced with a different synthesis method it has not seen before [14].
 
-Fake audio can fail in more than one dimension simultaneously. Some artifacts are acoustic, such as unnatural spectral patterns and phase inconsistencies, while others are phonetic, such as irregular rhythm, unnatural prosody, and unusual co-articulation patterns. A detector that relies on a single feature type is therefore vulnerable to synthesis systems that do not happen to trigger that specific artifact. In practice, new generation tools appear frequently, so a detector that only works on known attack types offers limited real-world protection.
+Fake audio can fail in more than one dimension simultaneously. Some artifacts are acoustic, such as unnatural spectral patterns and phase inconsistencies, while others are phonetic, such as irregular rhythm, unnatural prosody, and unusual co-articulation patterns [7]. A detector that relies on a single feature type is therefore vulnerable to synthesis systems that do not happen to trigger that specific artifact [14, 8]. In practice, new generation tools appear frequently, so a detector that only works on known attack types offers limited real-world protection [12].
 
 Our project addresses this challenge by exploring how combining different types of pre-trained audio representations can produce a more robust and accurate deepfake detector.
 
 ### 1.2 Project Goals: Improving Spoofing Classification Using Pre-trained Models
 
-The main goal of this project is to build a system that can reliably distinguish between real and synthetic speech, and to validate it on two established public benchmarks. Rather than designing handcrafted features or training a model from scratch, we chose to leverage large pre-trained models that have already learned rich representations of natural speech from massive amounts of audio data.
+The main goal of this project is to build a system that can reliably distinguish between real and synthetic speech, and to validate it on two established public benchmarks. Rather than designing handcrafted features or training a model from scratch, we chose to leverage large pre-trained models that have already learned rich representations of natural speech from massive amounts of audio data [2, 3].
 
-Our reasoning is that these representations capture patterns in speech that are far more informative than simple acoustic features, and that a classifier built on top of them will be better equipped to detect the subtle inconsistencies introduced by fake audio.
+Our reasoning is that these representations capture patterns in speech that are far more informative than simple acoustic features [15, 18], and that a classifier built on top of them will be better equipped to detect the subtle inconsistencies introduced by fake audio.
 
 A key design decision in this project is the use of **offline feature extraction**. Rather than running the large pre-trained encoders during each training step, we extract and save all audio representations to disk before training begins. This cleanly separates the costly encoding step from the iterative training loop, dramatically reduces GPU memory pressure, and makes it practical to experiment with different classifier architectures and hyperparameters without re-running inference through multi-hundred-million-parameter models.
 
@@ -63,35 +63,35 @@ Both configurations outperform single-encoder baselines, confirming that the dua
 
 ### 2.1 Classical and Modern Approaches to Audio Spoofing Detection
 
-Early anti-spoofing systems relied on handcrafted audio features combined with classical machine learning classifiers. These methods captured broad spectral properties of the audio and worked reasonably well against the synthesis systems of their time, which left relatively obvious acoustic traces.
+Early anti-spoofing systems relied on handcrafted audio features combined with classical machine learning classifiers [12, 13]. These methods captured broad spectral properties of the audio and worked reasonably well against the synthesis systems of their time, which left relatively obvious acoustic traces [13].
 
-As neural speech synthesis improved and produced more natural-sounding output, these approaches became insufficient. Their fixed representations were not sensitive enough to capture the subtle differences between real and synthetic speech.
+As neural speech synthesis improved and produced more natural-sounding output, these approaches became insufficient [7]. Their fixed representations were not sensitive enough to capture the subtle differences between real and synthetic speech [12].
 
-The field gradually moved toward deep learning, which allowed models to learn more discriminative patterns directly from data rather than relying on manually designed features. This improved detection across a range of attack types.
+The field gradually moved toward deep learning, which allowed models to learn more discriminative patterns directly from data rather than relying on manually designed features [7]. This improved detection across a range of attack types [28, 29].
 
-The most recent and effective direction has been the use of large self-supervised models pretrained on vast amounts of natural speech. These models produce rich audio representations that capture general properties of human speech and have been shown to generalize better to new and unseen synthesis methods. This makes them the foundation of current state-of-the-art detection systems and the starting point for our own work.
+The most recent and effective direction has been the use of large self-supervised models pretrained on vast amounts of natural speech [15, 16]. These models produce rich audio representations that capture general properties of human speech and have been shown to generalize better to new and unseen synthesis methods [15, 17, 18]. This makes them the foundation of current state-of-the-art detection systems and the starting point for our own work [20, 21, 22].
 
 ### 2.2 Pre-trained Speech and ASR Models: WavLM and Whisper
 
 #### WavLM
 
-WavLM is a self-supervised speech model developed by Microsoft and trained on a large and diverse corpus of audio data. During training, it learns to reconstruct masked portions of the audio signal from noisy and clean speech, forcing it to develop a deep understanding of how natural speech is structured at the acoustic level.
+WavLM is a self-supervised speech model developed by Microsoft and trained on a large and diverse corpus of audio data [2]. During training, it learns to reconstruct masked portions of the audio signal from noisy and clean speech, forcing it to develop a deep understanding of how natural speech is structured at the acoustic level [2].
 
-It was originally designed to perform well across a wide range of speech tasks, including speaker recognition and speech separation, and achieves strong results on many of them without task-specific fine-tuning. For deepfake detection, its key value is that it captures fine-grained acoustic properties that tend to deviate from natural patterns when audio is synthetically generated.
+It was originally designed to perform well across a wide range of speech tasks, including speaker recognition and speech separation, and achieves strong results on many of them without task-specific fine-tuning [2]. For deepfake detection, its key value is that it captures fine-grained acoustic properties that tend to deviate from natural patterns when audio is synthetically generated [20, 21].
 
-Architecturally, WavLM is built on the wav2vec 2.0 framework, using a CNN-based waveform encoder followed by a stack of Transformer layers. The CNN feature extractor converts raw audio waveforms into a sequence of local feature vectors, which the Transformer then contextualizes across time.
+Architecturally, WavLM is built on the wav2vec 2.0 framework [23], using a CNN-based waveform encoder followed by a stack of Transformer layers [2]. The CNN feature extractor converts raw audio waveforms into a sequence of local feature vectors, which the Transformer then contextualizes across time.
 
 What distinguishes WavLM from its predecessors is its training objective. Rather than simply masking and predicting clean speech tokens as in HuBERT or wav2vec 2.0, WavLM is trained with a masked speech prediction task applied to speech mixed with noise or overlapping utterances. This forces the model to learn representations that are robust to signal-level perturbations, a property that translates well to deepfake detection, where subtle distortions in the signal are the primary evidence of synthesis.
 
 The variant we use, **microsoft/wavlm-base-plus**, produces frame-level embeddings of dimension **768** at a temporal resolution of one frame per **20 ms** of audio. These frame-level features preserve fine temporal structure, which is important because synthesis artifacts can appear as brief inconsistencies at specific time steps rather than as global properties of the recording.
 
-WavLM has been shown to perform strongly on the SUPERB benchmark across a wide range of downstream tasks. Its strong speaker-discriminative properties make it especially sensitive to the acoustic fingerprint of a speaker, which voice-conversion and TTS systems must approximate but rarely replicate perfectly. In the context of anti-spoofing, WavLM representations have already demonstrated competitive performance in several prior works, reinforcing its suitability as a backbone feature extractor for our system.
+WavLM has been shown to perform strongly on the SUPERB benchmark across a wide range of downstream tasks [19]. Its strong speaker-discriminative properties make it especially sensitive to the acoustic fingerprint of a speaker, which voice-conversion and TTS systems must approximate but rarely replicate perfectly [2]. In the context of anti-spoofing, WavLM representations have already demonstrated competitive performance in several prior works [20, 21, 22], reinforcing its suitability as a backbone feature extractor for our system.
 
 #### Whisper
 
-Whisper, developed by OpenAI, takes a fundamentally different approach. It is an automatic speech recognition model trained on a massive amount of transcribed audio collected from diverse sources across the internet. Because its objective is to accurately transcribe spoken content, it learns to encode phonetic and linguistic structure: how speech sounds are organized into words, syllables, and sentences.
+Whisper, developed by OpenAI, takes a fundamentally different approach [3]. It is an automatic speech recognition model trained on a massive amount of transcribed audio collected from diverse sources across the internet [3]. Because its objective is to accurately transcribe spoken content, it learns to encode phonetic and linguistic structure: how speech sounds are organized into words, syllables, and sentences [3].
 
-While Whisper was not designed for deepfake detection, this type of representation is relevant. Synthetic speech often contains subtle phonetic irregularities and unnatural prosodic patterns that acoustic models may overlook. Together, WavLM and Whisper offer complementary views of the same audio signal, which is the core idea behind our fusion approach.
+While Whisper was not designed for deepfake detection, this type of representation is relevant. Synthetic speech often contains subtle phonetic irregularities and unnatural prosodic patterns that acoustic models may overlook [7]. Together, WavLM and Whisper offer complementary views of the same audio signal, which is the core idea behind our fusion approach [16].
 
 Architecturally, Whisper follows an encoder-decoder design. The encoder receives a log-Mel spectrogram computed from the input waveform and processes it through a stack of Transformer layers to produce a sequence of contextual embeddings. These encoder outputs are used as feature representations in our pipeline. The decoder, which generates text tokens, is discarded entirely.
 
@@ -99,21 +99,21 @@ The encoder's input representation, the log-Mel spectrogram, is fundamentally di
 
 The variant we use, **openai/whisper-small**, also produces frame-level embeddings of dimension **768**, matching the output dimension of WavLM-base-plus. This dimensional alignment is convenient for fusion because the two feature sequences can be combined without an additional projection layer, which would introduce more parameters and potential information loss.
 
-Because Whisper was trained across 680,000 hours of multilingual audio from highly varied recording conditions, its encoder has been exposed to a wide range of voices, accents, and speaking styles. This breadth of exposure means its encoder has developed a robust internal model of what phonetically plausible speech should look like. Deviations from this model, such as those introduced by TTS systems that imperfectly model coarticulation or rhythm, can appear as anomalous activation patterns that a downstream classifier can exploit.
+Because Whisper was trained across 680,000 hours of multilingual audio from highly varied recording conditions [3], its encoder has been exposed to a wide range of voices, accents, and speaking styles. This breadth of exposure means its encoder has developed a robust internal model of what phonetically plausible speech should look like [3]. Deviations from this model, such as those introduced by TTS systems that imperfectly model coarticulation or rhythm, can appear as anomalous activation patterns that a downstream classifier can exploit [7].
 
 ### 2.3 Classification Architectures for Spoofing Detection: Nes2Net
 
 To understand Nes2Net, it helps to trace the line of architectures it builds on.
 
-Standard ResNet introduced residual connections: shortcut paths that add the input of a block directly to its output. These connections allow gradients to flow cleanly through deep networks and made it practical to train much deeper models without degradation.
+Standard ResNet introduced residual connections: shortcut paths that add the input of a block directly to its output [24]. These connections allow gradients to flow cleanly through deep networks and made it practical to train much deeper models without degradation [24].
 
-Res2Net extended this idea by splitting the feature channels within a single residual block into multiple subsets and processing them in a hierarchical, sequential manner. This lets the block naturally capture features at multiple scales in a single forward pass. This multi-scale property is useful for audio because spoofing artifacts can appear at different time resolutions. A model that can attend to both local frame-level irregularities and broader temporal patterns in one block is better equipped to detect them.
+Res2Net extended this idea by splitting the feature channels within a single residual block into multiple subsets and processing them in a hierarchical, sequential manner [25]. This lets the block naturally capture features at multiple scales in a single forward pass [25]. This multi-scale property is useful for audio because spoofing artifacts can appear at different time resolutions [26, 27]. A model that can attend to both local frame-level irregularities and broader temporal patterns in one block is better equipped to detect them [1].
 
-Nes2Net, proposed by Liu et al. (2025), nests an additional residual connection inside each Res2Net block, creating a two-level hierarchy of residual pathways within a single building block. The inner shortcut allows the model to preserve fine-grained information, while the outer one propagates coarser, more abstract representations. This gives the architecture greater expressive capacity without requiring more depth or more parameters.
+Nes2Net, proposed by Liu et al. [1], nests an additional residual connection inside each Res2Net block, creating a two-level hierarchy of residual pathways within a single building block. The inner shortcut allows the model to preserve fine-grained information, while the outer one propagates coarser, more abstract representations. This gives the architecture greater expressive capacity without requiring more depth or more parameters [1].
 
-Each block also incorporates a Squeeze-and-Excitation (SE) module, which recalibrates the importance of each feature channel using global context. This further improves the model's ability to focus on the most informative parts of the representation.
+Each block also incorporates a Squeeze-and-Excitation (SE) module [1], which recalibrates the importance of each feature channel using global context. This further improves the model's ability to focus on the most informative parts of the representation.
 
-A key practical advantage of Nes2Net is that it is designed to accept the high-dimensional output of speech foundation models directly, without a dimensionality reduction step. Reducing the feature dimension before classification is common in simpler pipelines but inevitably discards information. Nes2Net avoids this bottleneck.
+A key practical advantage of Nes2Net is that it is designed to accept the high-dimensional output of speech foundation models directly, without a dimensionality reduction step [1]. Reducing the feature dimension before classification is common in simpler pipelines but inevitably discards information [15]. Nes2Net avoids this bottleneck [1].
 
 A global pooling operation at the end of the backbone collapses the temporal dimension into a fixed-length vector, which is then passed to a linear classification head. For FusionGuardNet, this architecture serves as a compact but expressive engine that processes the fused WavLM and Whisper embeddings and produces the final real/fake decision.
 
@@ -435,7 +435,7 @@ Finally, adding interpretability analysis for time-frequency regions can make de
 
 ## 8. References
 
-1. Liu, T., Truong, D. T., Das, R. K., Lee, K. A., & Li, H. (2025). *Nes2Net: A lightweight nested architecture for foundation model driven speech anti-spoofing*. arXiv preprint arXiv:2504.05657v2.
+1. Liu, T., Truong, D. T., Das, R. K., Lee, K. A., & Li, H. (2025). *Nes2Net: A lightweight nested architecture for foundation model driven speech anti-spoofing*. arXiv:2504.05657.
 
 2. Chen, S., Wang, C., Chen, Z., Wu, Y., Liu, S., Chen, Z., ... & Wei, F. (2022). *WavLM: Large-scale self-supervised pre-training for full stack speech processing*. IEEE Journal of Selected Topics in Signal Processing, 16(6), 1505–1518.
 
@@ -443,6 +443,54 @@ Finally, adding interpretability analysis for time-frequency regions can make de
 
 4. Kinnunen, T., Yamagishi, J., Todisco, M., Delgado, H., Sahidullah, M., Wang, W., Evans, N., & Lee, K. A. (2019). *ASVspoof 2019: Future horizons in spoofed and fake audio detection*. In Proc. Interspeech 2019 (pp. 1008–1012).
 
-5. Wang, X., Tak, H., Patino, J., Todisco, M., Nautsch, A., Yamagishi, J., & Evans, N. (2024). *ASVspoof 5: Crowdsourced data, deepfakes, and adversarial attacks at scale*. arXiv preprint arXiv:2408.08703.
+5. Wang, X., Tak, H., Patino, J., Todisco, M., Nautsch, A., Yamagishi, J., & Evans, N. (2024). *ASVspoof 5: Crowdsourced data, deepfakes, and adversarial attacks at scale*. arXiv:2408.08703.
 
 6. Kaggle. (n.d.). *Fake or real audio dataset*. https://www.kaggle.com/datasets/mohammedabdeldayem/the-fake-or-real-dataset
+
+7. Khanjani, Z., Watson, G., & Janeja, V. P. (2024). *A survey on speech deepfake detection*. arXiv:2404.13914.
+
+8. Li, X., Chen, P-Y., & Wei, W. (2025). *Where are we in audio deepfake detection? A systematic analysis over generative and detection models*. ACM Transactions on Internet Technology. arXiv:2410.04324.
+
+9. Yi, J., et al. (2025). *Vulnerabilities of audio-based biometric authentication systems against deepfake speech synthesis*. arXiv:2601.02914.
+
+10. (2025). *A survey of threats against voice authentication and anti-spoofing systems*. arXiv:2508.16843.
+
+11. Cai, Z., et al. (2025). *Deepfake-Eval-2024: A multi-modal in-the-wild benchmark of deepfakes circulated in 2024*. arXiv:2503.02857.
+
+12. (2025). *Benchmarking audio deepfake detection robustness in real-world communication scenarios*. arXiv:2504.12423.
+
+13. (2023). *Audio anti-spoofing detection: A survey*. arXiv:2308.14970.
+
+14. (2024). *Harder or different? Understanding generalization of audio deepfake detection*. arXiv:2406.03512.
+
+15. (2024). *Attentive merging of hidden embeddings from pre-trained speech model for anti-spoofing detection*. arXiv:2406.10283.
+
+16. (2025). *Two views, one truth: Spectral and self-supervised features fusion for robust speech deepfake detection*. arXiv:2507.20417.
+
+17. (2025). *From sharpness to better generalization for speech deepfake detection*. arXiv:2506.11532.
+
+18. (2025). *Comprehensive layer-wise analysis of SSL models for audio deepfake detection*. arXiv:2502.03559.
+
+19. Yang, S-W., et al. (2021). *SUPERB: Speech processing universal performance benchmark*. In Proc. Interspeech 2021. arXiv:2105.01051.
+
+20. (2023). *Audio deepfake detection with self-supervised WavLM and multi-fusion attentive classifier*. arXiv:2312.08089.
+
+21. (2024). *WavLM model ensemble for audio deepfake detection*. arXiv:2408.07414.
+
+22. (2024). *Exploring WavLM back-ends for speech spoofing and deepfake detection*. arXiv:2409.05032.
+
+23. (2024). *Experimental study: Enhancing voice spoofing detection models with wav2vec 2.0*. arXiv:2402.17127.
+
+24. He, K., Zhang, X., Ren, S., & Sun, J. (2016). *Deep residual learning for image recognition*. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR), pp. 770–778.
+
+25. Gao, S-H., Cheng, M-M., Zhao, K., Zhang, X-Y., Yang, M-H., & Torr, P. (2021). *Res2Net: A new multi-scale backbone architecture*. IEEE Transactions on Pattern Analysis and Machine Intelligence, 43(2), 652–662. arXiv:1904.01169.
+
+26. Li, X., et al. (2021). *Replay and synthetic speech detection with Res2Net architecture*. In Proc. ICASSP 2021. arXiv:2010.15006.
+
+27. (2023). *Spatial reconstructed local attention Res2Net with F0 subband for fake speech detection*. arXiv:2308.09944.
+
+28. (2024). *Improving short utterance anti-spoofing with AASIST2*. arXiv:2309.08279.
+
+29. (2024). *AASIST3: KAN-enhanced AASIST speech deepfake detection using SSL features and additional regularization for the ASVspoof 2024 challenge*. arXiv:2408.17352.
+
+30. (2025). *Beyond identity: A generalizable approach for deepfake audio detection*. arXiv:2505.06766.
