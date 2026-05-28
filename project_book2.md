@@ -263,23 +263,6 @@ To make tensor sizes and architectural transitions explicit, This table summariz
 | Global pooling output | 768 | Temporal axis collapsed by mean pooling |
 | Classification output | 2 logits | Real / fake |
 
-### 4.6 Numerical Feature Dimensions and Baseline-to-Proposed Architectural Change
-
-To make tensor sizes and architectural transitions explicit, Table 4.1 summarizes the exact dimensions used from raw input to classifier output.
-
-| Component | Output shape / size | Explanation |
-|---|---:|---|
-| Input audio | 64,000 samples | 4 seconds at 16 kHz |
-| WavLM features | 200 × 768 | Frame-level embeddings, ~20 ms stride |
-| Whisper features (before alignment) | variable × 768 | Encoder embeddings from log-Mel spectrogram input |
-| Whisper features (after alignment) | 200 × 768 | Truncated or zero-padded to the WavLM temporal length |
-| Fusion input | two tensors of 200 × 768 | WavLM branch + Whisper branch |
-| Fusion output | 200 × 768 | Channel-wise weighted combination |
-| Fusion trainable parameters | 1,536 | 2 learnable weights per 768 channels |
-| Nes2Net input | 200 × 768 | Fused sequence; no projection layer required |
-| Global pooling output | 768 | Temporal axis collapsed by mean pooling |
-| Classification output | 2 logits | Real / fake |
-
 Relative to the baseline architecture, the core change is the addition of the Whisper branch before classification. In the baseline setting, Nes2Net receives a single **200 × 768** WavLM tensor. In the proposed setting, a second aligned **200 × 768** Whisper tensor is fused with WavLM through a learnable weighted sum, while preserving the classifier input shape at **200 × 768**. This keeps the downstream Nes2Net interface unchanged and introduces only **1,536** additional trainable parameters in the fusion layer.
 
 
