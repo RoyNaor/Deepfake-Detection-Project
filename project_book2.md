@@ -246,7 +246,7 @@ During training, cross-entropy loss is applied to these logits. At inference tim
 
 The input dimension of 768 matches the output of both pre-trained encoders exactly, so no projection layer is needed between the fusion module and the classifier. The NES ratio is set to **(8, 8)** and the dilation factor to **2** within the Bottle2neck blocks, matching the configuration from the original Nes2Net paper. A dropout rate of **0.5** is applied within the backbone during training for regularization.
 
-### 4.6 Numerical Feature Dimensions and Baseline-to-Proposed Architectural Change
+### 4.6 Feature Dimensions and Architectural Comparison
 
 To make tensor sizes and architectural transitions explicit, This table summarizes the exact dimensions used from raw input to classifier output.
 
