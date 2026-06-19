@@ -17,11 +17,8 @@ PDF_PATH = os.path.join(BASE_DIR, "FusionGuardNet_Project_Book.pdf")
 IMAGES = {
     "d1_acc":  "results/results-d1/accuracy_curve.png",
     "d1_loss": "results/results-d1/loss_curve.png",
-    "d1_cm":   "results/results-d1/test_runs/test_epoch_08_2026-03-26_19-46-37/confusion_matrix_epoch_08.png",
     "d2_acc":  "results/results-d2/accuracy_curve.png",
     "d2_loss": "results/results-d2/loss_curve.png",
-    "d2_cm":   "results/results-d2/test_runs/test_epoch_07_2026-04-12_09-31-23/confusion_matrix_epoch_07.png",
-    "d2_roc":  "results/results-d2/test_runs/test_epoch_07_2026-04-12_09-31-23/roc_curve_epoch_07.png",
 }
 
 def b64img(rel_path):
@@ -65,9 +62,8 @@ html_body = add_cite_superscripts(html_body)
 # ── 4. Inject Dataset 1 figures ───────────────────────────────────────────────
 D1_ANCHOR = "well balanced for this dataset configuration.</p>"
 D1_FIGS = "\n".join([
-    figure_block("d1_acc",  "Dataset 1 — Training vs. Validation Accuracy over 8 epochs", 1),
-    figure_block("d1_loss", "Dataset 1 — Training vs. Validation Loss over 8 epochs",     2),
-    figure_block("d1_cm",   "Dataset 1 — Confusion Matrix on the Test Set (Epoch 8)",      3),
+    figure_block("d1_acc",  "Dataset 1 (ASVsp-C) — Training vs. Validation Accuracy over 8 epochs", 2),
+    figure_block("d1_loss", "Dataset 1 (ASVsp-C) — Training vs. Validation Loss over 8 epochs",     3),
 ])
 if D1_ANCHOR in html_body:
     html_body = html_body.replace(D1_ANCHOR, D1_ANCHOR + "\n" + D1_FIGS)
@@ -77,10 +73,8 @@ else:
 # ── 5. Inject Dataset 2 figures ───────────────────────────────────────────────
 D2_ANCHOR = "remains stable when the data becomes more varied.</p>"
 D2_FIGS = "\n".join([
-    figure_block("d2_acc",  "Dataset 2 — Training vs. Validation Accuracy over 8 epochs",          4),
-    figure_block("d2_loss", "Dataset 2 — Training vs. Validation Loss over 8 epochs",              5),
-    figure_block("d2_cm",   "Dataset 2 — Confusion Matrix on the Test Set (Epoch 7)",              6),
-    figure_block("d2_roc",  "Dataset 2 — ROC Curve (AUC = 0.9991, EER = 0.60%) (Epoch 7)",        7),
+    figure_block("d2_acc",  "Dataset 2 (ASVsp-FoR) — Training vs. Validation Accuracy over 8 epochs", 4),
+    figure_block("d2_loss", "Dataset 2 (ASVsp-FoR) — Training vs. Validation Loss over 8 epochs",     5),
 ])
 if D2_ANCHOR in html_body:
     html_body = html_body.replace(D2_ANCHOR, D2_ANCHOR + "\n" + D2_FIGS)
