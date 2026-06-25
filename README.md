@@ -3,9 +3,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue?logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/PyTorch-2.x-EE4C2C?logo=pytorch&logoColor=white" alt="PyTorch">
-  <img src="https://img.shields.io/badge/Accuracy%20D1-99.18%25-brightgreen" alt="Accuracy D1">
-  <img src="https://img.shields.io/badge/Accuracy%20D2-99.34%25-brightgreen" alt="Accuracy D2">
-  <img src="https://img.shields.io/badge/EER%20D2-0.60%25-brightgreen" alt="EER D2">
   <img src="https://img.shields.io/badge/GPU-CUDA%20Required-76B900?logo=nvidia&logoColor=white" alt="CUDA">
 </p>
 
