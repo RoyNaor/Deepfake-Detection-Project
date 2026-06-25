@@ -55,21 +55,23 @@ flowchart LR
     B --> D["Acoustic Features\n200 × 768"]
     C --> E["Semantic Features\n200 × 768\ntemporally aligned"]
 
-    subgraph Fusion ["Learnable Fusion  (1,536 params)"]
+    subgraph Fusion ["Learnable Fusion (1,536 params)"]
         D --> F["Channel-wise\nWeighted Sum\nsoftmax-normalised"]
         E --> F
     end
 
     F --> G["Fused Features\n200 × 768"]
 
-    subgraph Classifier ["Nes2Net Classifier"]
+    subgraph Classifier ["Nes2Net"]
+        H[" "]
     end
 
-    J --> K{{"✅ Real\n❌ Fake"}}
+    G --> H --> K{{"✅ Real\n❌ Fake"}}
 
     style Encoders fill:#e8f0fe,stroke:#4a7fcc,color:#1a1a1a
     style Fusion fill:#fef9e7,stroke:#d4ac0d,color:#1a1a1a
     style Classifier fill:#eafaf1,stroke:#2ecc71,color:#1a1a1a
+    style H fill:transparent,stroke:transparent,color:transparent
 ```
 
 ### Component Details
