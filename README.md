@@ -63,9 +63,6 @@ flowchart LR
     F --> G["Fused Features\n200 × 768"]
 
     subgraph Classifier ["Nes2Net Classifier"]
-        G --> H["Nested Res2Net Blocks\n+ SE Attention"]
-        H --> I["Global Average\nPooling → 768-dim"]
-        I --> J["Linear Head\n2 logits"]
     end
 
     J --> K{{"✅ Real\n❌ Fake"}}
