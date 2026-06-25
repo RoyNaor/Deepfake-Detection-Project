@@ -1,4 +1,4 @@
-# FusionGuardNet — Audio Deepfake Detection via Acoustic & Semantic Fusion
+# FusionGuardNet - Audio Deepfake Detection via Acoustic & Semantic Fusion
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue?logo=python&logoColor=white" alt="Python">
@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  A multi-modal deepfake speech detector that fuses <strong>WavLM</strong> acoustic embeddings with <strong>Whisper</strong> semantic embeddings and classifies them using a <strong>Nes2Net</strong> backbone — achieving state-of-the-art accuracy across two benchmark configurations.
+  A multi-modal deepfake speech detector that fuses <strong>WavLM</strong> acoustic embeddings with <strong>Whisper</strong> semantic embeddings and classifies them using a <strong>Nes2Net</strong> backbone - achieving state-of-the-art accuracy across two benchmark configurations.
 </p>
 
 ---
@@ -35,10 +35,10 @@
 
 Modern text-to-speech and voice conversion systems can synthesize speech that is acoustically indistinguishable from a real human voice, making purely signal-based detectors increasingly fragile. Synthesis errors manifest in **two distinct dimensions**:
 
-- **Acoustic artifacts** — unnatural spectral patterns, phase inconsistencies, and waveform-level distortions
-- **Phonetic/prosodic artifacts** — irregular rhythm, imperfect coarticulation, and unnatural linguistic flow
+- **Acoustic artifacts** - unnatural spectral patterns, phase inconsistencies, and waveform-level distortions
+- **Phonetic/prosodic artifacts** - irregular rhythm, imperfect coarticulation, and unnatural linguistic flow
 
-FusionGuardNet tackles both simultaneously by combining two frozen pre-trained encoders that analyse the same audio clip from different perspectives, fusing their output through a learnable layer, and passing the result to a compact Nes2Net classifier. Only the fusion layer and classifier are trained — the large encoders remain frozen throughout.
+FusionGuardNet tackles both simultaneously by combining two frozen pre-trained encoders that analyse the same audio clip from different perspectives, fusing their output through a learnable layer, and passing the result to a compact Nes2Net classifier. Only the fusion layer and classifier are trained - the large encoders remain frozen throughout.
 
 ---
 
@@ -49,8 +49,8 @@ flowchart LR
     A["🎙️ Raw Audio\n16 kHz · Mono · 4 s"] --> B
 
     subgraph Encoders ["Frozen Pre-trained Encoders"]
-        B["WavLM\nmicrosoft/wavlm-base-plus\n— acoustic SSL model —"]
-        C["Whisper Encoder\nopenai/whisper-small\n— ASR semantic model —"]
+        B["WavLM\nmicrosoft/wavlm-base-plus\n- acoustic SSL model -"]
+        C["Whisper Encoder\nopenai/whisper-small\n- ASR semantic model -"]
     end
 
     A --> C
@@ -95,7 +95,7 @@ flowchart LR
 flowchart TD
     A["📁 Raw Audio Files\nFLAC · WAV · MP3"] --> B
 
-    subgraph Pre["Stage 0 — Preprocessing  (scripts/organize_data.py)"]
+    subgraph Pre["Stage 0 - Preprocessing  (scripts/organize_data.py)"]
         B["Read protocol files\n& folder structure"]
         B --> C["Merge · Deduplicate\nBalance classes"]
         C --> D["80 / 10 / 10 split\nseed = 42"]
@@ -103,7 +103,7 @@ flowchart TD
 
     D --> E
 
-    subgraph Ext["Stage 1 — Offline Feature Extraction  (scripts/extract_features.py)"]
+    subgraph Ext["Stage 1 - Offline Feature Extraction  (scripts/extract_features.py)"]
         E["Mono · Resample 16 kHz\nPad / Crop → 4 s  (64,000 samples)"]
         E --> F["WavLM forward pass\n→ 200 × 768 tensor"]
         E --> G["log-Mel spectrogram\n→ Whisper encoder\n→ align to 200 × 768"]
@@ -113,7 +113,7 @@ flowchart TD
 
     H --> I
 
-    subgraph Train["Stage 2 — Training  (scripts/train_model.py)"]
+    subgraph Train["Stage 2 - Training  (scripts/train_model.py)"]
         I["Load pre-extracted .pt files"]
         I --> J["Learnable Fusion Layer\nlearn WavLM vs Whisper balance"]
         J --> K["Nes2Net Backbone\n+ Dropout 0.5"]
@@ -127,7 +127,7 @@ flowchart TD
 
     P --> Q
 
-    subgraph Eval["Stage 3 — Evaluation  (scripts/test_fusion_guard_net.py)"]
+    subgraph Eval["Stage 3 - Evaluation  (scripts/test_fusion_guard_net.py)"]
         Q["Load best checkpoint"]
         Q --> R["Inference on test set\n(no gradients · dropout off)"]
         R --> S["Accuracy · Precision · Recall\nF1 · Confusion Matrix · EER · ROC"]
@@ -147,10 +147,10 @@ flowchart TD
 |---|---|
 | **Frozen encoders** | Prevents catastrophic forgetting; reduces trainable parameters; feasible on a single GPU |
 | **Offline feature extraction** | Avoids repeated inference through 300M+ parameter models; dramatically cuts training time and GPU memory |
-| **Dual-encoder fusion** | Acoustic and phonetic artifacts are orthogonal — WavLM misses what Whisper catches, and vice versa |
+| **Dual-encoder fusion** | Acoustic and phonetic artifacts are orthogonal - WavLM misses what Whisper catches, and vice versa |
 | **Learnable weighted sum** | Only 1,536 parameters; interpretable (per-channel weights reveal which model dominates); no structural assumptions |
 | **4-second fixed length** | Balances coverage vs. padding; random crop acts as mild augmentation for long clips |
-| **Balanced splits** | Real and fake samples shuffled independently before splitting — no class skew in any set |
+| **Balanced splits** | Real and fake samples shuffled independently before splitting - no class skew in any set |
 
 ---
 
@@ -158,7 +158,7 @@ flowchart TD
 
 FusionGuardNet is evaluated on two dataset configurations of increasing diversity.
 
-### Dataset 1 — ASVspoof 2019 LA + ASVspoof5 2024
+### Dataset 1 - ASVspoof 2019 LA + ASVspoof5 2024
 
 | Split | Real | Fake | Total |
 |---|---:|---:|---:|
@@ -166,7 +166,7 @@ FusionGuardNet is evaluated on two dataset configurations of increasing diversit
 | Dev | 5,267 | 5,267 | **10,534** |
 | Test | 5,268 | 5,268 | **10,536** |
 
-### Dataset 2 — ASVspoof 2019 LA + ASVspoof5 2024 + Fake-or-Real (for-norm)
+### Dataset 2 - ASVspoof 2019 LA + ASVspoof5 2024 + Fake-or-Real (for-norm)
 
 | Split | Real | Fake | Total |
 |---|---:|---:|---:|
@@ -180,7 +180,7 @@ FusionGuardNet is evaluated on two dataset configurations of increasing diversit
 
 ## Results
 
-### Dataset 1 — Test Set (10,536 samples)
+### Dataset 1 - Test Set (10,536 samples)
 
 | Metric | Value |
 |---|---:|
@@ -193,9 +193,9 @@ FusionGuardNet is evaluated on two dataset configurations of increasing diversit
 | False Negatives | 43 |
 | Total Errors | **86 / 10,536** |
 
-> Perfectly symmetric error profile — the model is equally likely to mistake a real sample for fake as a fake for real.
+> Perfectly symmetric error profile - the model is equally likely to mistake a real sample for fake as a fake for real.
 
-### Dataset 2 — Test Set (17,467 samples)
+### Dataset 2 - Test Set (17,467 samples)
 
 | Metric | Value |
 |---|---:|
@@ -209,7 +209,7 @@ FusionGuardNet is evaluated on two dataset configurations of increasing diversit
 | False Negatives | 38 |
 | Total Errors | **115 / 17,467** |
 
-### Training History — Dataset 1
+### Training History - Dataset 1
 
 | Epoch | Train Acc | Val Acc | Train Loss | Val Loss |
 |---:|---:|---:|---:|---:|
@@ -282,7 +282,7 @@ python scripts/check_setup.py
 
 ## Usage
 
-### Step 1 — Prepare the datasets
+### Step 1 - Prepare the datasets
 
 **Dataset 1** (ASVspoof 2019 LA + ASVspoof5 2024):
 
@@ -301,7 +301,7 @@ python scripts/organize_data_2.py \
   --for_root        /path/to/fake-or-real/for-norm
 ```
 
-### Step 2 — Download pre-trained backbones
+### Step 2 - Download pre-trained backbones
 
 ```bash
 python scripts/download_models.py
@@ -309,7 +309,7 @@ python scripts/download_models.py
 
 Downloads `microsoft/wavlm-base-plus` and `openai/whisper-small` from HuggingFace Hub.
 
-### Step 3 — Pre-extract features
+### Step 3 - Pre-extract features
 
 ```bash
 python scripts/extract_features.py \
@@ -320,7 +320,7 @@ python scripts/extract_features.py \
 
 Each audio clip is saved as a `.pt` file containing: WavLM features, Whisper features (aligned), padding masks, and integer label.
 
-### Step 4 — Train
+### Step 4 - Train
 
 ```bash
 python scripts/train_model.py \
@@ -332,7 +332,7 @@ python scripts/train_model.py \
 
 Checkpoints are saved under `results/checkpoints-d*/`. Best checkpoint is selected on validation accuracy + loss.
 
-### Step 5 — Evaluate on the test set
+### Step 5 - Evaluate on the test set
 
 ```bash
 python scripts/test_fusion_guard_net.py \
@@ -342,7 +342,7 @@ python scripts/test_fusion_guard_net.py \
 
 Outputs: accuracy, confusion matrix, precision/recall/F1, EER, ROC curve.
 
-### Step 6 — Single-file inference
+### Step 6 - Single-file inference
 
 ```bash
 python scripts/eval_single_audio.py \
