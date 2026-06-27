@@ -25,6 +25,9 @@
 \usepackage{booktabs}
 \usepackage{array}
 \usepackage{tabularx}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
 
 % ── TikZ (pipeline diagram) ───────────────────────────────────────────────────
 \usepackage{tikz}
@@ -595,16 +598,16 @@ entries into a unified pool before re-splitting.
   \centering
   \caption{Dataset configurations used in this project.}
   \label{tab:datasets}
-  \begin{tabularx}{\linewidth}{llX}
+  \begin{tabular}{L{2.8cm}L{4.2cm}L{6.5cm}}
     \toprule
     Configuration & Name & Included datasets \\
     \midrule
     Dataset 1 & ASVspoof Combined (ASVsp-C) &
-      ASVspoof 2019 LA + ASVspoof5 2024 \\
+      ASVspoof 2019 LA + ASVspoof5 2024 \\[4pt]
     Dataset 2 & ASVspoof-FoR Extended (ASVsp-FoR) &
       ASVspoof 2019 LA + ASVspoof5 2024 + Fake-or-Real (for-norm) \\
     \bottomrule
-  \end{tabularx}
+  \end{tabular}
 \end{table}
 
 Throughout this document, \textbf{Dataset~1} is referred to as
@@ -667,24 +670,24 @@ FusionGuardNet follows a three-stage pipeline with clear stage separation.
   \centering
   \caption{FusionGuardNet three-stage processing pipeline.}
   \label{tab:pipeline}
-  \begin{tabularx}{\linewidth}{llX}
+  \begin{tabular}{L{2.5cm}L{7.5cm}L{2.8cm}}
     \toprule
     Stage & Description & Output \\
     \midrule
     1.\ Offline feature extraction &
       Each audio clip is preprocessed and passed through frozen WavLM and
       Whisper encoders. &
-      Saved PyTorch tensor files \\
+      Saved PyTorch tensor files \\[6pt]
     2.\ Feature fusion &
       The two pre-extracted feature sequences are loaded and combined by a
       learnable fusion module. &
-      One fused feature sequence \\
+      One fused feature sequence \\[6pt]
     3.\ Classification &
       The fused sequence is passed through the Nes2Net backbone and classified
       as real or fake. &
       Two-class prediction \\
     \bottomrule
-  \end{tabularx}
+  \end{tabular}
 \end{table}
 
 Before training, each audio clip is preprocessed and passed through two frozen
@@ -767,21 +770,22 @@ pipeline, applied uniformly across all source datasets.
   \centering
   \caption{Audio preprocessing steps applied uniformly across all source datasets.}
   \label{tab:preproc}
-  \begin{tabularx}{\linewidth}{lX}
+  \begin{tabular}{L{4cm}L{9cm}}
     \toprule
     Step & Description \\
     \midrule
-    Channel reduction         & Multi-channel recordings are averaged into a
-                                single mono waveform. \\
-    Sample rate normalization & Every waveform is resampled to 16,000\,Hz using
-                                Torchaudio. \\
-    Fixed-length normalization& Each waveform is normalized to exactly 4 seconds
-                                (64,000 samples). Longer clips are randomly cropped;
-                                shorter clips are zero-padded at the end. \\
-    Padding-validity mask     & A frame-level binary mask marks real audio frames
-                                as 1 and padded frames as 0. \\
+    Channel reduction          & Multi-channel recordings are averaged into a
+                                 single mono waveform. \\[4pt]
+    Sample rate normalization  & Every waveform is resampled to 16,000\,Hz using
+                                 Torchaudio. \\[4pt]
+    Fixed-length normalization & Each waveform is normalized to exactly 4 seconds
+                                 (64,000 samples). Longer clips are randomly
+                                 cropped; shorter clips are zero-padded at the
+                                 end. \\[4pt]
+    Padding-validity mask      & A frame-level binary mask marks real audio frames
+                                 as 1 and padded frames as 0. \\
     \bottomrule
-  \end{tabularx}
+  \end{tabular}
 \end{table}
 
 \subsubsection{Channel reduction}
@@ -942,7 +946,7 @@ the exact dimensions used from raw input to classifier output.
   \centering
   \caption{Tensor dimensions at each processing stage of FusionGuardNet.}
   \label{tab:dims}
-  \begin{tabularx}{\linewidth}{lrX}
+  \begin{tabular}{L{4.2cm}L{3.5cm}L{5.5cm}}
     \toprule
     Component & Output shape & Explanation \\
     \midrule
@@ -957,7 +961,7 @@ the exact dimensions used from raw input to classifier output.
     Global pooling output    & 768                   & Temporal axis collapsed \\
     Classification output    & 2 logits              & Real / Fake \\
     \bottomrule
-  \end{tabularx}
+  \end{tabular}
 \end{table}
 
 Relative to the baseline architecture, the core change is the addition of the
@@ -1049,21 +1053,21 @@ We evaluated the model using several complementary metrics.
   \centering
   \caption{Evaluation metrics used in this project.}
   \label{tab:metrics}
-  \begin{tabularx}{\linewidth}{lX}
+  \begin{tabular}{L{3.5cm}L{9.5cm}}
     \toprule
     Metric & Purpose \\
     \midrule
     Accuracy           & Measures the overall percentage of correctly classified
-                         samples. \\
-    Cross-Entropy loss & Tracks convergence and helps detect overfitting. \\
-    Precision          & Measures how reliable positive predictions are. \\
+                         samples. \\[3pt]
+    Cross-Entropy loss & Tracks convergence and helps detect overfitting. \\[3pt]
+    Precision          & Measures how reliable positive predictions are. \\[3pt]
     Recall             & Measures how many samples of a class are correctly
-                         detected. \\
-    F1-score           & Harmonic mean of precision and recall. \\
+                         detected. \\[3pt]
+    F1-score           & Harmonic mean of precision and recall. \\[3pt]
     EER                & Measures the point where false acceptance and false
                          rejection rates are equal; lower is better. \\
     \bottomrule
-  \end{tabularx}
+  \end{tabular}
 \end{table}
 
 Because Dataset~1 is perfectly balanced and Dataset~2 is near-balanced (with a
@@ -1107,7 +1111,7 @@ The main quantitative results are summarized below.
   \centering
   \caption{Main quantitative results for FusionGuardNet (WavLM + Whisper + Nes2Net).}
   \label{tab:results}
-  \begin{tabular}{lrrrrr}
+  \begin{tabular}{L{2.4cm}R{1.8cm}R{1.8cm}R{1.8cm}R{1.8cm}R{1.8cm}}
     \toprule
     Experiment & Accuracy & Precision & Recall & F1-score & EER \\
     \midrule
