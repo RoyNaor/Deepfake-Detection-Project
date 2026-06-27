@@ -1,5 +1,17 @@
 # FusionGuardNet: Audio Deepfake Detection Using WavLM, Whisper, and Nes2Net
 
+## Abstract
+
+The rapid advancement of generative AI has made synthetic speech increasingly indistinguishable from natural human voice, posing serious threats to voice authentication systems and audio-based communication. This project presents **FusionGuardNet**, an audio deepfake detection system that combines complementary representations from two large pre-trained models — **WavLM** and **Whisper** — processed by a **Nes2Net** classifier.
+
+WavLM captures fine-grained acoustic and speaker-level properties of the audio signal, while Whisper encodes phonetic and prosodic structure derived from its speech recognition training. Both encoders are kept fully frozen, and their 768-dimensional frame-level embeddings are combined through a lightweight learnable weighted fusion layer before being passed to the classifier. This offline extraction strategy eliminates redundant encoder inference during training and keeps the system practical on a single GPU.
+
+FusionGuardNet is evaluated on two benchmark configurations. On **Dataset 1** (ASVspoof Combined, 10,536 test samples), the model achieves **99.18% accuracy** with a perfectly symmetric error profile of 43 false positives and 43 false negatives. On **Dataset 2** (ASVspoof-FoR Extended, 17,467 test samples), it reaches **99.34% accuracy** and an **Equal Error Rate of 0.60%**, demonstrating that performance remains stable under a broader and more diverse set of spoofing conditions.
+
+The results support the central hypothesis that fusing acoustic and phonetic-linguistic representations yields a more robust detector than either modality alone, while introducing only 1,536 additional trainable parameters over the single-encoder baseline.
+
+---
+
 ## Table of Contents
 
 - [1. Introduction](#1-introduction)
