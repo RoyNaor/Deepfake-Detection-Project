@@ -95,30 +95,53 @@ if len(occurrences) >= 1:
 else:
     print("WARNING: Spectrogram anchor not found — figure not inserted.")
 
-# ── 5. Inject Dataset 1 figures ───────────────────────────────────────────────
-D1_ANCHOR = "well balanced for this dataset configuration.</p>"
-D1_FIGS = "\n".join([
-    figure_block("d1_acc",  "Dataset 1 — Training vs. Validation Accuracy over 8 epochs", 1),
-    figure_block("d1_loss", "Dataset 1 — Training vs. Validation Loss over 8 epochs",     2),
-    figure_block("d1_cm",   "Dataset 1 — Confusion Matrix on the Test Set (Epoch 8)",      3),
-])
-if D1_ANCHOR in html_body:
-    html_body = html_body.replace(D1_ANCHOR, D1_ANCHOR + "\n" + D1_FIGS)
+# ── 5. Inject result figures — spread individually across §6.2 ───────────────
+# D1 accuracy: after the sentence describing 8-epoch convergence
+D1_ACC_ANCHOR = "with best dev accuracy of <strong>99.25%</strong>.</p>"
+if D1_ACC_ANCHOR in html_body:
+    html_body = html_body.replace(
+        D1_ACC_ANCHOR,
+        D1_ACC_ANCHOR + "\n" + figure_block("d1_acc", "Dataset 1 — Training vs. Validation Accuracy over 8 epochs. The model converges stably, reaching 99.49% training accuracy by epoch 8.", 1)
+    )
 else:
-    print("WARNING: Dataset 1 anchor not found — figures not inserted.")
+    print("WARNING: D1 accuracy anchor not found.")
 
-# ── 6. Inject Dataset 2 figures ───────────────────────────────────────────────
-D2_ANCHOR = "remains stable when the data becomes more varied.</p>"
-D2_FIGS = "\n".join([
-    figure_block("d2_acc",  "Dataset 2 — Training vs. Validation Accuracy over 8 epochs",          4),
-    figure_block("d2_loss", "Dataset 2 — Training vs. Validation Loss over 8 epochs",              5),
-    figure_block("d2_cm",   "Dataset 2 — Confusion Matrix on the Test Set (Epoch 7)",              6),
-    figure_block("d2_roc",  "Dataset 2 — ROC Curve (AUC = 0.9991, EER = 0.60%) (Epoch 7)",        7),
-])
-if D2_ANCHOR in html_body:
-    html_body = html_body.replace(D2_ANCHOR, D2_ANCHOR + "\n" + D2_FIGS)
+# D1 confusion matrix: after the D1 counts sentence
+D1_CM_ANCHOR = "TN=5,225, FP=43, FN=43, TP=5,225</strong>)."
+D1_CM_CLOSE = html_body.find("</p>", html_body.find(D1_CM_ANCHOR)) if D1_CM_ANCHOR in html_body else -1
+if D1_CM_CLOSE != -1:
+    insert = D1_CM_CLOSE + len("</p>")
+    html_body = html_body[:insert] + "\n" + figure_block("d1_cm", "Dataset 1 — Confusion Matrix on the Test Set (Epoch 8). Perfectly symmetric errors: 43 false positives and 43 false negatives out of 10,536 samples.", 2) + html_body[insert:]
 else:
-    print("WARNING: Dataset 2 anchor not found — figures not inserted.")
+    print("WARNING: D1 confusion matrix anchor not found.")
+
+# D2 accuracy: after the sentence describing 99.34% on 17,467 samples
+D2_ACC_ANCHOR = "indicating that the integration remains robust under broader and more modern spoofing conditions"
+D2_ACC_CLOSE = html_body.find("</p>", html_body.find(D2_ACC_ANCHOR)) if D2_ACC_ANCHOR in html_body else -1
+if D2_ACC_CLOSE != -1:
+    insert = D2_ACC_CLOSE + len("</p>")
+    html_body = html_body[:insert] + "\n" + figure_block("d2_acc", "Dataset 2 — Training vs. Validation Accuracy over 8 epochs. The fused model maintains stable convergence on the larger mixed-source dataset.", 3) + html_body[insert:]
+else:
+    print("WARNING: D2 accuracy anchor not found.")
+
+# D2 confusion matrix: after the sentence about remains stable / broader conditions (intro summary)
+D2_CM_ANCHOR = "remains stable when the data becomes more varied.</p>"
+if D2_CM_ANCHOR in html_body:
+    html_body = html_body.replace(
+        D2_CM_ANCHOR,
+        D2_CM_ANCHOR + "\n" + figure_block("d2_cm", "Dataset 2 — Confusion Matrix on the Test Set (Epoch 7). TN=8,652, FP=77, FN=38, TP=8,700 across 17,467 samples.", 4)
+    )
+else:
+    print("WARNING: D2 confusion matrix anchor not found.")
+
+# D2 ROC: after the EER sentence in the intro results summary
+D2_ROC_ANCHOR = "an <strong>Equal Error Rate (EER) of 0.60%</strong>"
+D2_ROC_CLOSE = html_body.find("</p>", html_body.find(D2_ROC_ANCHOR)) if D2_ROC_ANCHOR in html_body else -1
+if D2_ROC_CLOSE != -1:
+    insert = D2_ROC_CLOSE + len("</p>")
+    html_body = html_body[:insert] + "\n" + figure_block("d2_roc", "Dataset 2 — ROC Curve (AUC = 0.9991, EER = 0.60%, Epoch 7). Near-perfect discrimination between real and fake samples across all operating thresholds.", 5) + html_body[insert:]
+else:
+    print("WARNING: D2 ROC anchor not found.")
 
 # ── 7. CSS ────────────────────────────────────────────────────────────────────
 CSS = """
