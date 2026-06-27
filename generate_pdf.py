@@ -15,13 +15,16 @@ MD_PATH  = os.path.join(BASE_DIR, "project_book2.md")
 PDF_PATH = os.path.join(BASE_DIR, "FusionGuardNet_Project_Book.pdf")
 
 IMAGES = {
-    "d1_acc":  "results/results-d1/accuracy_curve.png",
-    "d1_loss": "results/results-d1/loss_curve.png",
-    "d1_cm":   "results/results-d1/test_runs/test_epoch_08_2026-03-26_19-46-37/confusion_matrix_epoch_08.png",
-    "d2_acc":  "results/results-d2/accuracy_curve.png",
-    "d2_loss": "results/results-d2/loss_curve.png",
-    "d2_cm":   "results/results-d2/test_runs/test_epoch_07_2026-04-12_09-31-23/confusion_matrix_epoch_07.png",
-    "d2_roc":  "results/results-d2/test_runs/test_epoch_07_2026-04-12_09-31-23/roc_curve_epoch_07.png",
+    "d1_acc":    "results/results-d1/accuracy_curve.png",
+    "d1_loss":   "results/results-d1/loss_curve.png",
+    "d1_cm":     "results/results-d1/test_runs/test_epoch_08_2026-03-26_19-46-37/confusion_matrix_epoch_08.png",
+    "d2_acc":    "results/results-d2/accuracy_curve.png",
+    "d2_loss":   "results/results-d2/loss_curve.png",
+    "d2_cm":     "results/results-d2/test_runs/test_epoch_07_2026-04-12_09-31-23/confusion_matrix_epoch_07.png",
+    "d2_roc":    "results/results-d2/test_runs/test_epoch_07_2026-04-12_09-31-23/roc_curve_epoch_07.png",
+    "wavlm":     "figures/wavlm_architecture.png",
+    "whisper":   "figures/whisper_architecture.png",
+    "spectro":   "figures/spectrogram_real_vs_fake.png",
 }
 
 def b64img(rel_path):
@@ -62,7 +65,37 @@ def add_cite_superscripts(html):
 
 html_body = add_cite_superscripts(html_body)
 
-# ── 4. Inject Dataset 1 figures ───────────────────────────────────────────────
+# ── 4. Inject architecture figures ───────────────────────────────────────────
+WAVLM_ANCHOR = "which voice-conversion and TTS systems must approximate but rarely replicate perfectly.</p>"
+WAVLM_FIG = figure_block("wavlm", "WavLM pre-training architecture — masked prediction over utterance-mixed audio. CNN encoders extract local features, the Transformer encoder with Gated Relative Position Bias contextualises them, and the Mask Prediction Loss trains the model to reconstruct masked frames [M] from context.", "A")
+if WAVLM_ANCHOR in html_body:
+    html_body = html_body.replace(WAVLM_ANCHOR, WAVLM_ANCHOR + "\n" + WAVLM_FIG)
+else:
+    print("WARNING: WavLM anchor not found — figure not inserted.")
+
+WHISPER_ANCHOR = "which is the core idea behind our fusion approach"
+WHISPER_FIG = figure_block("whisper", "Whisper sequence-to-sequence architecture. The encoder (left) processes a Log-Mel Spectrogram through 2×Conv1D+GELU and stacked Transformer blocks; the decoder (right) generates text tokens autoregressively via cross-attention. In FusionGuardNet only the encoder is used [16].", "B")
+# find end of the paragraph containing this anchor
+if WHISPER_ANCHOR in html_body:
+    idx = html_body.index(WHISPER_ANCHOR)
+    close_p = html_body.index("</p>", idx)
+    insert_at = close_p + len("</p>")
+    html_body = html_body[:insert_at] + "\n" + WHISPER_FIG + html_body[insert_at:]
+else:
+    print("WARNING: Whisper anchor not found — figure not inserted.")
+
+SPECTRO_ANCHOR = "rather than raw acoustic signal properties.</p>"
+SPECTRO_FIG = figure_block("spectro", "Log-Mel spectrogram comparison: real speech (left) shows denser, more irregular low-frequency energy; synthetic speech (right) displays smoother, more uniform spectral structure with visible silence bands — differences that motivate the Whisper encoder branch.", "C")
+# There may be multiple occurrences; target the one in §4.3 (second occurrence)
+occurrences = [m.start() for m in __import__('re').finditer(re.escape(SPECTRO_ANCHOR), html_body)]
+if len(occurrences) >= 1:
+    idx = occurrences[-1]  # use last occurrence (§4.3)
+    insert_at = idx + len(SPECTRO_ANCHOR)
+    html_body = html_body[:insert_at] + "\n" + SPECTRO_FIG + html_body[insert_at:]
+else:
+    print("WARNING: Spectrogram anchor not found — figure not inserted.")
+
+# ── 5. Inject Dataset 1 figures ───────────────────────────────────────────────
 D1_ANCHOR = "well balanced for this dataset configuration.</p>"
 D1_FIGS = "\n".join([
     figure_block("d1_acc",  "Dataset 1 — Training vs. Validation Accuracy over 8 epochs", 1),
@@ -74,7 +107,7 @@ if D1_ANCHOR in html_body:
 else:
     print("WARNING: Dataset 1 anchor not found — figures not inserted.")
 
-# ── 5. Inject Dataset 2 figures ───────────────────────────────────────────────
+# ── 6. Inject Dataset 2 figures ───────────────────────────────────────────────
 D2_ANCHOR = "remains stable when the data becomes more varied.</p>"
 D2_FIGS = "\n".join([
     figure_block("d2_acc",  "Dataset 2 — Training vs. Validation Accuracy over 8 epochs",          4),
@@ -87,7 +120,7 @@ if D2_ANCHOR in html_body:
 else:
     print("WARNING: Dataset 2 anchor not found — figures not inserted.")
 
-# ── 6. CSS ────────────────────────────────────────────────────────────────────
+# ── 7. CSS ────────────────────────────────────────────────────────────────────
 CSS = """
 @page {
     size: A4;
@@ -262,7 +295,7 @@ h2 + ol li {
 }
 """
 
-# ── 7. Assemble full HTML ──────────────────────────────────────────────────────
+# ── 8. Assemble full HTML ──────────────────────────────────────────────────────
 full_html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -274,7 +307,7 @@ full_html = f"""<!DOCTYPE html>
 </body>
 </html>"""
 
-# ── 8. Render PDF ─────────────────────────────────────────────────────────────
+# ── 9. Render PDF ─────────────────────────────────────────────────────────────
 print("Rendering PDF …")
 WHTML(string=full_html).write_pdf(PDF_PATH, stylesheets=[WCSS(string=CSS)])
 print(f"Done → {PDF_PATH}")
