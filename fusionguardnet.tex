@@ -26,17 +26,14 @@
 \usepackage{array}
 \usepackage{tabularx}
 
-% ── Color ─────────────────────────────────────────────────────────────────────
-\usepackage[dvipsnames]{xcolor}
-
 % ── TikZ (pipeline diagram) ───────────────────────────────────────────────────
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc}
 
-% ── Section formatting ────────────────────────────────────────────────────────
+% ── Section formatting — black only, no colors ────────────────────────────────
 \usepackage{titlesec}
-\titleformat{\section}{\large\bfseries\color{NavyBlue}}{\thesection}{1em}{}[\titlerule]
-\titleformat{\subsection}{\normalsize\bfseries\color{MidnightBlue}}{\thesubsection}{1em}{}
+\titleformat{\section}{\large\bfseries}{\thesection}{1em}{}[\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{1em}{}
 \titleformat{\subsubsection}{\normalsize\bfseries\itshape}{\thesubsubsection}{1em}{}
 
 % ── Captions ──────────────────────────────────────────────────────────────────
@@ -45,9 +42,8 @@
 % ── Lists ─────────────────────────────────────────────────────────────────────
 \usepackage{enumitem}
 
-% ── Hyperlinks ────────────────────────────────────────────────────────────────
-\usepackage[colorlinks=true, linkcolor=NavyBlue, citecolor=NavyBlue, urlcolor=NavyBlue,
-            breaklinks=true]{hyperref}
+% ── Hyperlinks — black, no colored boxes ──────────────────────────────────────
+\usepackage[colorlinks=false, hidelinks, breaklinks=true]{hyperref}
 \usepackage{url}
 
 % ── Header / footer ───────────────────────────────────────────────────────────
@@ -62,23 +58,46 @@
 \setlength{\parskip}{0.45em}
 \setlength{\parindent}{0pt}
 
+% ── Custom abstract style ─────────────────────────────────────────────────────
+\usepackage{abstract}
+\renewcommand{\abstractnamefont}{\normalfont\small\bfseries\scshape}
+\renewcommand{\abstracttextfont}{\normalfont\small}
+
 % ─────────────────────────────────────────────────────────────────────────────
 \begin{document}
 
-% ── Title page ────────────────────────────────────────────────────────────────
-\begin{titlepage}
-  \centering
-  \vspace*{3cm}
-  {\LARGE\bfseries FusionGuardNet: Audio Deepfake Detection\\[0.5em]
-  Using WavLM, Whisper, and Nes2Net\par}
-  \vspace{2cm}
-  {\large Roy Naor\par}
-  \vspace{0.4cm}
-  {\normalsize Project Report\par}
-  \vspace{0.4cm}
-  {\normalsize \today\par}
-  \vfill
-\end{titlepage}
+% ── Title block (preprint style) ──────────────────────────────────────────────
+\begin{center}
+
+\rule{\linewidth}{1.5pt}\\[0.4em]
+{\LARGE\bfseries\scshape
+  FusionGuardNet: Audio Deepfake Detection\\[0.35em]
+  Using WavLM, Whisper, and Nes2Net
+}\\[0.4em]
+\rule{\linewidth}{0.8pt}\\[1.0em]
+
+{\small\scshape A Preprint}\\[1.2em]
+
+% Authors
+{\normalsize
+  Roy Naor$^{1}$ \quad Shani Golomb$^{1}$
+}\\[0.5em]
+
+% Supervisors
+{\normalsize
+  \textit{Supervised by:} Dr.\ Or Anidjar$^{1}$ \quad Dr.\ Roi Yozevitch$^{1}$
+}\\[0.7em]
+
+% Affiliation
+{\small
+  $^{1}$Department of Computer Science, Ariel University, Ariel, Israel
+}\\[0.8em]
+
+{\small \today}
+
+\end{center}
+
+\vspace{0.5em}
 
 % ── Abstract ──────────────────────────────────────────────────────────────────
 \begin{abstract}
@@ -102,13 +121,17 @@ FusionGuardNet is evaluated on two benchmark configurations. On \textbf{Dataset~
 accuracy} with a perfectly symmetric error profile of 43 false positives and 43
 false negatives. On \textbf{Dataset~2} (ASVspoof-FoR Extended, 17,467 test
 samples), it reaches \textbf{99.34\% accuracy} and an \textbf{Equal Error Rate of
-0.60\%}, demonstrating that performance remains stable under a broader and more
-diverse set of spoofing conditions.
+0.60\%}, demonstrating stable performance under a broader and more diverse set of
+spoofing conditions.
 
 The results support the central hypothesis that fusing acoustic and
 phonetic-linguistic representations yields a more robust detector than either
 modality alone, while introducing only 1,536 additional trainable parameters over
 the single-encoder baseline.
+
+\medskip
+\noindent\textit{Keywords:} audio deepfake detection $\cdot$ self-supervised learning
+$\cdot$ WavLM $\cdot$ Whisper $\cdot$ feature fusion $\cdot$ Nes2Net $\cdot$ speech anti-spoofing
 \end{abstract}
 
 \tableofcontents
@@ -161,8 +184,9 @@ detector.
 The main goal of this project is to build a system that reliably distinguishes
 between real and synthetic speech and validate it on two established public
 benchmark configurations. Rather than designing handcrafted features or training
-from scratch, we leverage large pre-trained models \cite{chen2022wavlm,radford2023whisper}
-that have already learned rich speech representations from massive audio data.
+from scratch, we leverage large pre-trained models \cite{chen2022wavlm,
+radford2023whisper} that have already learned rich speech representations from
+massive audio data.
 
 A key design decision is the use of \textbf{offline feature extraction}: all
 audio representations are extracted and saved to disk before training begins.
@@ -362,14 +386,14 @@ fusion layer and backbone are trained.
   \begin{tikzpicture}[
     node distance=0.55cm and 2.2cm,
     every node/.style={font=\small},
-    box/.style={rectangle, rounded corners=4pt, draw=gray!60, fill=NavyBlue!8,
+    box/.style={rectangle, rounded corners=4pt, draw=black!50, fill=black!5,
                 text width=3.3cm, align=center, minimum height=0.85cm, inner sep=5pt},
-    gbox/.style={rectangle, rounded corners=4pt, draw=OliveGreen!60, fill=OliveGreen!15,
+    gbox/.style={rectangle, rounded corners=4pt, draw=black!70, fill=black!12,
                 text width=3.3cm, align=center, minimum height=0.85cm, inner sep=5pt,
                 font=\small\bfseries},
-    fbox/.style={rectangle, rounded corners=4pt, draw=Goldenrod!80, fill=Goldenrod!18,
+    fbox/.style={rectangle, rounded corners=4pt, draw=black!60, fill=black!8,
                 text width=3.3cm, align=center, minimum height=0.85cm, inner sep=5pt},
-    arr/.style={-{Stealth[length=4pt]}, thick, gray!65}
+    arr/.style={-{Stealth[length=4pt]}, thick, black!60}
   ]
   \node[box] (audio) {Audio Input\\4\,sec $\cdot$ 16\,kHz};
 
@@ -472,8 +496,10 @@ $\boldsymbol{\alpha}_1, \boldsymbol{\alpha}_2 \in \mathbb{R}^{768}$ are learned;
 before combining, they are passed through a softmax so the weights are positive
 and sum to 1 at each feature dimension:
 \begin{equation}
-  \mathbf{f}_t = \sigma_1 \odot \mathbf{w}_t \;+\; \sigma_2 \odot \mathbf{s}_t,
-  \qquad [\boldsymbol{\sigma}_1, \boldsymbol{\sigma}_2]
+  \mathbf{f}_t = \boldsymbol{\sigma}_1 \odot \mathbf{w}_t \;+\;
+                 \boldsymbol{\sigma}_2 \odot \mathbf{s}_t,
+  \qquad
+  [\boldsymbol{\sigma}_1, \boldsymbol{\sigma}_2]
   = \operatorname{softmax}([\boldsymbol{\alpha}_1, \boldsymbol{\alpha}_2])
   \label{eq:fusion}
 \end{equation}
@@ -512,7 +538,7 @@ during training.
     Fusion input             & $2\times200\times768$ & WavLM + Whisper branches \\
     Fusion output            & $200\times768$        & Channel-wise weighted combination \\
     Fusion trainable params  & 1,536                 & 2 weight vectors of dim 768 \\
-    Nes2Net input            & $200\times768$        & No projection layer needed \\
+    Nes2Net input            & $200\times768$        & No projection layer required \\
     Global pooling output    & 768                   & Temporal axis collapsed \\
     Classification output    & 2 logits              & Real / Fake \\
     \bottomrule
@@ -586,9 +612,8 @@ fixed to 42 for reproducibility.
     Precision          & Fraction of predicted fakes that are truly fake. \\
     Recall             & Fraction of actual fakes correctly detected. \\
     F1-score           & Harmonic mean of precision and recall. \\
-    EER                & Threshold-independent metric: operating point where
-                         false acceptance rate equals false rejection rate;
-                         lower is better. \\
+    EER                & Operating point where false acceptance and false
+                         rejection rates are equal; lower is better. \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -786,8 +811,7 @@ In \textit{Proc.\ ASVspoof 2024 Workshop}.
 
 \bibitem{liu2023asvspoof2021}
 Liu, X., et al. (2023).
-\textit{ASVspoof 2021: Towards spoofed and deepfake speech detection in the
-wild}.
+\textit{ASVspoof 2021: Towards spoofed and deepfake speech detection in the wild}.
 IEEE/ACM Transactions on Audio, Speech, and Language Processing, 31, 2507--2522.
 \url{https://arxiv.org/abs/2210.02437}
 
@@ -800,8 +824,7 @@ Computer Speech \& Language, 45, 516--535.
 
 \bibitem{muller2024harder}
 Muller, N.~M., Evans, N., Tak, H., Sperl, P., \& Bottinger, K. (2024).
-\textit{Harder or different? Understanding generalization of audio deepfake
-detection}.
+\textit{Harder or different? Understanding generalization of audio deepfake detection}.
 In \textit{Proc.\ Interspeech 2024}.
 \url{https://arxiv.org/abs/2406.03512}
 
@@ -813,8 +836,7 @@ speech detection}. arXiv:2505.17513.
 
 \bibitem{zhu2024slim}
 Zhu, Y., Koppisetti, S., Tran, T., \& Bharaj, G. (2024).
-\textit{SLIM: Style-linguistics mismatch model for generalized audio deepfake
-detection}.
+\textit{SLIM: Style-linguistics mismatch model for generalized audio deepfake detection}.
 In \textit{Advances in NeurIPS~37}.
 \url{https://arxiv.org/abs/2407.18517}
 
@@ -826,14 +848,12 @@ communication scenarios}. arXiv:2504.12423.
 
 \bibitem{chen2022wavlm}
 Chen, S., Wang, C., Chen, Z., Wu, Y., Liu, S., et al. (2022).
-\textit{WavLM: Large-scale self-supervised pre-training for full stack speech
-processing}.
+\textit{WavLM: Large-scale self-supervised pre-training for full stack speech processing}.
 IEEE Journal of Selected Topics in Signal Processing, 16(6), 1505--1518.
 \url{https://arxiv.org/abs/2110.13900}
 
 \bibitem{radford2023whisper}
-Radford, A., Kim, J.~W., Xu, T., Brockman, G., McLeavey, C., \& Sutskever, I.
-(2023).
+Radford, A., Kim, J.~W., Xu, T., Brockman, G., McLeavey, C., \& Sutskever, I. (2023).
 \textit{Robust speech recognition via large-scale weak supervision}.
 In \textit{Proc.\ ICML 2023}, 28492--28518.
 \url{https://arxiv.org/abs/2212.04356}
@@ -846,15 +866,13 @@ In \textit{Proc.\ Interspeech 2021}, 1194--1198.
 
 \bibitem{elkheir2025comprehensive}
 El~Kheir, Y., Samih, Y., Maharjan, S., Polzehl, T., \& Moller, S. (2025).
-\textit{Comprehensive layer-wise analysis of SSL models for audio deepfake
-detection}.
+\textit{Comprehensive layer-wise analysis of SSL models for audio deepfake detection}.
 In \textit{Findings of ACL: NAACL 2025}, 4070--4082.
 \url{https://arxiv.org/abs/2502.03559}
 
 \bibitem{guo2024wavlm}
 Guo, Y., Huang, H., Chen, X., Zhao, H., \& Wang, Y. (2024).
-\textit{Audio deepfake detection with self-supervised WavLM and multi-fusion
-attentive classifier}.
+\textit{Audio deepfake detection with self-supervised WavLM and multi-fusion attentive classifier}.
 In \textit{Proc.\ ICASSP 2024}, 12702--12706.
 \url{https://arxiv.org/abs/2312.08089}
 
@@ -896,8 +914,7 @@ arXiv:2505.06766.
 
 \bibitem{baevski2020wav2vec}
 Baevski, A., Zhou, H., Mohamed, A., \& Auli, M. (2020).
-\textit{wav2vec~2.0: A framework for self-supervised learning of speech
-representations}.
+\textit{wav2vec~2.0: A framework for self-supervised learning of speech representations}.
 In \textit{Advances in NeurIPS~33}, 12449--12460.
 \url{https://arxiv.org/abs/2006.11477}
 
@@ -955,8 +972,8 @@ In \textit{Proc.\ Interspeech 2025}.
 \bibitem{kang2024wav2vec}
 Kang, T., Han, S., Choi, S., Seo, J., Chung, S., Lee, S., Oh, S.,
 \& Kwak, I.-Y. (2024).
-\textit{Experimental study: Enhancing voice spoofing detection models with
-wav2vec~2.0}. arXiv:2402.17127.
+\textit{Experimental study: Enhancing voice spoofing detection models with wav2vec~2.0}.
+arXiv:2402.17127.
 \url{https://arxiv.org/abs/2402.17127}
 
 \bibitem{zhang2024aasist2}
