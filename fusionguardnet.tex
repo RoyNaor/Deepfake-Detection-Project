@@ -333,28 +333,8 @@ We evaluate FusionGuardNet across two dataset configurations. On \textbf{Dataset
 (\textbf{ASVspoof Combined, ASVsp-C}), containing 10,536 balanced test samples,
 the model achieves \textbf{99.18\% test accuracy}, with a test loss of
 \textbf{0.0324} and only \textbf{86 misclassifications}. The error profile is
-perfectly symmetric, with equal false positive and false negative rates:
-
-\begin{table}[htbp]
-  \centering
-  \caption{FusionGuardNet test results summary on the ASVspoof Combined dataset (Dataset~1).}
-  \label{tab:d1summary}
-  \begin{tabular}{lr}
-    \toprule
-    Metric & Value \\
-    \midrule
-    Test samples        & 10,536 \\
-    Test accuracy       & 99.18\% \\
-    F1-score (fake)     & 99.18\% \\
-    Test loss           & 0.0324 \\
-    Total mistakes      & 86 \\
-    True negatives (TN) & 5,225 \\
-    False positives (FP)& 43 \\
-    False negatives (FN)& 43 \\
-    True positives (TP) & 5,225 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+perfectly symmetric, with equal false positive and false negative rates
+(TN\,=\,5,225, FP\,=\,43, FN\,=\,43, TP\,=\,5,225).
 
 This result indicates that the model performs consistently across both real and
 fake samples, without showing a strong bias toward one class. The equal number of
@@ -461,7 +441,10 @@ Architecturally, Whisper follows an encoder-decoder design \cite{radford2023whis
 the encoder receives a log-Mel spectrogram and processes it through Transformer
 layers to build higher-level representations of phoneme sequences, coarticulation
 patterns, and prosodic contours, while the decoder---which generates text
-tokens---is discarded entirely in our pipeline. The variant we use,
+tokens---is discarded entirely in our pipeline. Since FusionGuardNet only needs
+Whisper's internal representation of speech and never needs to generate text,
+\textbf{the decoder is not used at all}: only the encoder is loaded and run
+during feature extraction. The variant we use,
 \texttt{openai/whisper-small}, also produces frame-level embeddings of dimension
 \textbf{768} \cite{radford2023whisper}, matching WavLM exactly. This dimensional
 alignment means the two sequences can be combined without an additional projection
@@ -665,30 +648,6 @@ This facilitates traceability and later analysis.
 \subsection{End-to-End System Overview}
 
 FusionGuardNet follows a three-stage pipeline with clear stage separation.
-
-\begin{table}[htbp]
-  \centering
-  \caption{FusionGuardNet three-stage processing pipeline.}
-  \label{tab:pipeline}
-  \begin{tabular}{L{2.5cm}L{7.5cm}L{2.8cm}}
-    \toprule
-    Stage & Description & Output \\
-    \midrule
-    1.\ Offline feature extraction &
-      Each audio clip is preprocessed and passed through frozen WavLM and
-      Whisper encoders. &
-      Saved PyTorch tensor files \\[6pt]
-    2.\ Feature fusion &
-      The two pre-extracted feature sequences are loaded and combined by a
-      learnable fusion module. &
-      One fused feature sequence \\[6pt]
-    3.\ Classification &
-      The fused sequence is passed through the Nes2Net backbone and classified
-      as real or fake. &
-      Two-class prediction \\
-    \bottomrule
-  \end{tabular}
-\end{table}
 
 Before training, each audio clip is preprocessed and passed through two frozen
 pre-trained encoders: WavLM and Whisper. Their output feature sequences are saved
@@ -1047,28 +1006,14 @@ Whisper at each feature dimension.
 
 \subsection{Evaluation Metrics}
 
-We evaluated the model using several complementary metrics.
-
-\begin{table}[htbp]
-  \centering
-  \caption{Evaluation metrics used in this project.}
-  \label{tab:metrics}
-  \begin{tabular}{L{3.5cm}L{9.5cm}}
-    \toprule
-    Metric & Purpose \\
-    \midrule
-    Accuracy           & Measures the overall percentage of correctly classified
-                         samples. \\[3pt]
-    Cross-Entropy loss & Tracks convergence and helps detect overfitting. \\[3pt]
-    Precision          & Measures how reliable positive predictions are. \\[3pt]
-    Recall             & Measures how many samples of a class are correctly
-                         detected. \\[3pt]
-    F1-score           & Harmonic mean of precision and recall. \\[3pt]
-    EER                & Measures the point where false acceptance and false
-                         rejection rates are equal; lower is better. \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+We evaluated the model using several complementary metrics: \textbf{accuracy},
+measuring the overall percentage of correctly classified samples;
+\textbf{cross-entropy loss}, which tracks convergence and helps detect
+overfitting; \textbf{precision}, measuring how reliable positive predictions
+are; \textbf{recall}, measuring how many samples of a class are correctly
+detected; \textbf{F1-score}, the harmonic mean of precision and recall; and the
+\textbf{Equal Error Rate (EER)}, the point where false acceptance and false
+rejection rates are equal, where lower is better.
 
 Because Dataset~1 is perfectly balanced and Dataset~2 is near-balanced (with a
 very small class skew), accuracy serves as a reliable primary metric in both
@@ -1111,12 +1056,12 @@ The main quantitative results are summarized below.
   \centering
   \caption{Main quantitative results for FusionGuardNet (WavLM + Whisper + Nes2Net).}
   \label{tab:results}
-  \begin{tabular}{L{2.4cm}R{1.8cm}R{1.8cm}R{1.8cm}R{1.8cm}R{1.8cm}}
+  \begin{tabular}{L{2.2cm}R{1.7cm}R{1.6cm}R{1.7cm}R{1.6cm}R{1.7cm}R{1.4cm}}
     \toprule
-    Experiment & Accuracy & Precision & Recall & F1-score & EER \\
+    Experiment & Accuracy & Loss & Precision & Recall & F1-score & EER \\
     \midrule
-    Dataset 1 & 99.18\% & 99.18\% & 99.18\% & 99.18\% & N/A \\
-    Dataset 2 & 99.34\% & 99.12\% & 99.57\% & 99.35\% & 0.60\% \\
+    Dataset 1 & 99.18\% & 0.0324 & 99.18\% & 99.18\% & 99.18\% & N/A \\
+    Dataset 2 & 99.34\% & 0.0349 & 99.12\% & 99.57\% & 99.35\% & 0.60\% \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -1131,10 +1076,11 @@ epoch~1 to \textbf{99.49\%} in epoch~8, with best dev accuracy of
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.74\linewidth]{results/results-d1/accuracy_curve.png}
-  \caption{Dataset~1 --- Training vs.\ Validation Accuracy over 8 epochs.
-  The model converges stably, reaching 99.49\% training accuracy by epoch~8.}
-  \label{fig:d1acc}
+  \includegraphics[width=0.74\linewidth]{results/merged_accuracy_curve.png}
+  \caption{Training vs.\ Validation Accuracy over 8 epochs for Dataset~1 and
+  Dataset~2. Both configurations converge stably, reaching 99.49\% and 99.52\%
+  training accuracy by epoch~8, respectively.}
+  \label{fig:accmerged}
 \end{figure}
 
 \begin{figure}[htbp]
@@ -1154,27 +1100,10 @@ integration remains robust under broader and more modern spoofing conditions.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.74\linewidth]{results/results-d2/accuracy_curve.png}
-  \caption{Dataset~2 --- Training vs.\ Validation Accuracy over 8 epochs.
-  The fused model maintains stable convergence on the larger mixed-source dataset.}
-  \label{fig:d2acc}
-\end{figure}
-
-\begin{figure}[htbp]
-  \centering
   \includegraphics[width=0.62\linewidth]{results/results-d2/test_runs/test_epoch_07_2026-04-12_09-31-23/confusion_matrix_epoch_07.png}
   \caption{Dataset~2 --- Confusion Matrix on the Test Set (Epoch~7).
   TN\,=\,8,652, FP\,=\,77, FN\,=\,38, TP\,=\,8,700 across 17,467 samples.}
   \label{fig:d2cm}
-\end{figure}
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.74\linewidth]{results/results-d2/test_runs/test_epoch_07_2026-04-12_09-31-23/roc_curve_epoch_07.png}
-  \caption{Dataset~2 --- ROC Curve (AUC\,=\,0.9991, EER\,=\,0.60\%, Epoch~7).
-  Near-perfect discrimination between real and fake samples across all operating
-  thresholds.}
-  \label{fig:d2roc}
 \end{figure}
 
 Compared with the acoustic-only setup, this combined representation yields stronger
@@ -1185,21 +1114,10 @@ single cue family.
 
 \subsection{Ablation Study: Relative Contribution of Whisper Integration}
 
-The ablation logic in this project compares two aligned settings:
-
-\begin{table}[htbp]
-  \centering
-  \caption{Ablation study comparing baseline and proposed model settings.}
-  \label{tab:ablation}
-  \begin{tabular}{lll}
-    \toprule
-    Setting & Feature source & Classifier \\
-    \midrule
-    Baseline       & WavLM only      & Nes2Net \\
-    Proposed model & WavLM + Whisper & Nes2Net \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+The ablation logic in this project compares two aligned settings: a
+\textbf{baseline} using WavLM-only features with the Nes2Net classifier, and
+the \textbf{proposed model} using fused WavLM~+~Whisper features with the same
+Nes2Net classifier.
 
 Because both settings keep the same classifier family and decision objective, the
 main changing factor is the addition of Whisper-derived information. This makes it
